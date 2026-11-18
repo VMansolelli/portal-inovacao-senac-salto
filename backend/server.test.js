@@ -100,3 +100,44 @@ test('Recuperação por link e autorização de administradores adicionais',asyn
   assert.equal(calls.filter(([path,method])=>path.endsWith('/user') && method==='PUT').length,1);
   assert.ok(calls.some(([path])=>path.endsWith('/recover')));
 });
+
+test('Solicitação, aprovação exclusiva do master e ativação',async t=>{
+  const users={victor:{id:'owner',email_confirmed_at:'ok'},colega:{id:'staff',email_confirmed_at:'ok'}};
+  let grant=false,inviteHash,requestCount=0,activationCount=0;
+  const remote=async(url,opts)=>{
+    const b=opts.body && JSON.parse(opts.body);
+    if(url.pathname==='/auth/v1/user')return Response.json(users[opts.headers.Authorization.slice(7)]||{});
+    if(url.pathname==='/auth/v1/admin/users')return Response.json({id:'novo'});
+    assert.equal(url.pathname,'/rest/v1/rpc/portal_api');
+    switch(b.op){
+      case 'solicitar':requestCount++;return Response.json({ok:true});
+      case 'master/aprovar':inviteHash=b.p.digest;return Response.json({ok:true});
+      case 'master/lista':return Response.json([]);
+      case 'autorizado':return Response.json(grant && b.p.uid==='novo');
+      case 'validar-convite':return Response.json(!grant && b.p.digest===inviteHash);
+      case 'ativar':assert.equal(b.p.uid,'novo');grant=true;activationCount++;return Response.json({ok:true});
+      default:return Response.json({ok:true});
+    }
+  };
+  const s=createPortal({FRONTEND_ORIGIN:'https://portal.example',SUPABASE_URL:'https://db.example',ADMIN_USER_ID:'owner',ADMIN_USER_IDS:'staff',SUPABASE_PUBLISHABLE_KEY:'pk',SUPABASE_SECRET_KEY:'sk'},remote);
+  s.listen(0,'127.0.0.1');await once(s,'listening');t.after(()=>new Promise(done=>s.close(done)));
+  const call=(route,user,body)=>fetch('http://127.0.0.1:'+s.address().port+'/api/'+route,{method:body?'POST':'GET',headers:{cookie:'__Host-portal='+user,'content-type':'application/json'},body:body&&JSON.stringify(body)});
+  const data={nome:'Colega',email:'colega@sp.senac.br'};
+  assert.equal((await call('solicitar','',data)).status,200);assert.equal(requestCount,1);
+  for(const u of ['','colega']){
+    assert.equal((await call('master/lista',u)).status,403);
+    assert.equal((await call('master/aprovar',u,{id:'1'})).status,403);
+    assert.equal((await call('master/rejeitar',u,{id:'1'})).status,403);
+  }
+  assert.deepEqual(await (await call('admin/perfil','colega')).json(),{master:false});
+  assert.deepEqual(await (await call('admin/perfil','victor')).json(),{master:true});
+  const {codigo}=await (await call('master/aprovar','victor',{id:'1'})).json();
+  assert.ok(codigo && codigo!==inviteHash);
+  const accept={...data,codigo,senha:'senha-ficticia-123'};
+  assert.equal((await call('ativar','',{...accept,codigo:'invalido'})).status,403);
+  assert.equal((await call('ativar','',accept)).status,200);
+  assert.equal((await call('ativar','',accept)).status,403);assert.equal(activationCount,1);
+  for(const op of ['editar-acao','excluir-oficina','apagar-ideia','arquivar-ideia','arquivar-noticia'])
+    assert.equal((await call('admin/'+op,'',{id:'1'})).status,403);
+  const backup=await (await call('admin/reserva','victor',{})).json();assert.ok(backup.codigo.length>=32);
+});

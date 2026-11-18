@@ -1,3 +1,4 @@
+import {randomBytes,createHash} from 'node:crypto';
 import http from 'node:http';
 import {pathToFileURL} from 'node:url';
 import {fields,workshop,photo,insist,salas} from './validation.js';
@@ -6,7 +7,14 @@ export function createPortal(config, remote = fetch) {
   const origin = new URL(config.FRONTEND_ORIGIN).origin;
   const base = new URL(config.SUPABASE_URL);
   const adminIds = new Set([config.ADMIN_USER_ID, config.ADMIN_USER_IDS].filter(Boolean).join(',').split(',').map(id=>id.trim()).filter(Boolean));
-  const authorized = user => !!user?.email_confirmed_at && adminIds.has(user.id);
+  const masterId=config.ADMIN_USER_ID?.trim();
+  const authorized=async user=>!!user?.email_confirmed_at && (adminIds.has(user.id) || await rpc('autorizado',{uid:user.id})===true);
+  const digest=value=>createHash('sha256').update(value).digest('hex');
+  const newCode=()=>randomBytes(24).toString('base64url');
+  async function authAdmin(path,method,body){
+    return remote(new URL('/auth/v1/admin/users'+path,base),{method,signal:AbortSignal.timeout(15000),
+      headers:{apikey:config.SUPABASE_SECRET_KEY,'Content-Type':'application/json'},body:JSON.stringify(body)});
+  }
   if (!adminIds.size || !config.SUPABASE_SECRET_KEY || !config.SUPABASE_PUBLISHABLE_KEY || base.protocol!=='https:') {
     throw Error('Configure as variáveis do Supabase e o identificador do administrador.');
   }
@@ -27,14 +35,15 @@ export function createPortal(config, remote = fetch) {
     insist(!result?.conflict,result?.conflict,409);
     return result;
   }
-  async function admin(token) {
+  async function verifiedUser(token) {
     if(!token)return false;
     const r=await auth('user',{headers:{Authorization:'Bearer '+token}});
     if(r.status>=500)throw Object.assign(new Error('Serviço de login indisponível.'),{status:503});
     if(!r.ok)return false;
     const u=await r.json();
-    return authorized(u);
+    return u;
   }
+  const admin=async token=>authorized(await verifiedUser(token));
   async function read(req) {
     insist(req.headers['content-type']?.split(';')[0]==='application/json','Envie dados em JSON.',415);
     let size=0; const parts=[];
@@ -57,8 +66,16 @@ export function createPortal(config, remote = fetch) {
       const op=path.slice(5);
       const token=(req.headers.cookie||'').split(';').map(s=>s.trim()).find(s=>s.startsWith(cookieName+'='))?.slice(cookieName.length+1);
       if(req.method==='POST')insist(!req.headers.origin || req.headers.origin===origin,'Origem inválida.',403);
-      if(op.startsWith('admin/'))insist(await admin(token),'Entre com a conta administrativa.',403);
+      let staff;
+      if(op.startsWith('admin/') || op.startsWith('master/')){
+        staff=await verifiedUser(token);
+        insist(await authorized(staff),'Entre com a conta administrativa.',403);
+        if(op.startsWith('master/'))insist(staff.id===masterId,'Acesso exclusivo do administrador principal.',403);
+      }
       if(req.method==='GET'){
+        if(op==='versao')return reply(200,{versao:'painel-3',recuperacao:'link e chave de reserva',salas:salas.size});
+        if(op==='admin/perfil')return reply(200,{master:staff.id===masterId});
+        if(op==='master/lista')return reply(200,await rpc(op));
         if(op==='salas')return reply(200,[...salas]);
         if(['admin/lista','publico'].includes(op))return reply(200,await rpc(op));
         if(op.startsWith('admin/inscritos/'))return reply(200,await rpc('admin/inscritos',{id:op.slice(16)}));
@@ -72,6 +89,46 @@ export function createPortal(config, remote = fetch) {
       const b=await read(req);
       let data;
       switch(op){
+        case 'solicitar': {
+          const d=fields(b,['nome','email']);
+          insist(d.email.endsWith('@sp.senac.br'),'Use seu e-mail institucional @sp.senac.br.');
+          return reply(200,await rpc(op,d));
+        }
+        case 'master/aprovar': {
+          const {id}=fields(b,['id']),codigo=newCode();
+          await rpc(op,{id,digest:digest(codigo)});return reply(200,{codigo});
+        }
+        case 'master/rejeitar':return reply(200,await rpc(op,fields(b,['id'])));
+        case 'ativar': {
+          const {email,codigo}=fields(b,['email','codigo']);
+          insist(typeof b.senha==='string' && b.senha.length>=8 && b.senha.length<=1024,'Use pelo menos 8 caracteres.');
+          const hash=digest(codigo);
+          insist(await rpc('validar-convite',{email,digest:hash})===true,'Convite inválido ou expirado.',403);
+          const created=await authAdmin('','POST',{email,password:b.senha,email_confirm:true});
+          let uid;
+          if(created.ok){uid=(await created.json()).id;}
+          else {
+            insist(created.status===422 || created.status===400,'Não foi possível criar a conta.',503);
+            const login=await auth('token?grant_type=password',{method:'POST',body:JSON.stringify({email,password:b.senha})});
+            insist(login.ok,'Confira a política de senha. Se a conta já existir, use sua senha atual.',400);
+            const {user}=await login.json();uid=user?.email_confirmed_at && user.id;
+          }
+          insist(uid,'Conta sem confirmação.',403);
+          return reply(200,await rpc('ativar',{email,digest:hash,uid}));
+        }
+        case 'admin/reserva': {
+          const codigo=newCode();await rpc('guardar-reserva',{uid:staff.id,digest:digest(codigo)});
+          return reply(200,{codigo});
+        }
+        case 'usar-reserva': {
+          const {email,codigo}=fields(b,['email','codigo']);
+          insist(typeof b.senha==='string' && b.senha.length>=8 && b.senha.length<=1024,'Use pelo menos 8 caracteres.');
+          const uid=await rpc(op,{email,digest:digest(codigo)});
+          insist(typeof uid==='string' && (adminIds.has(uid) || await rpc('autorizado',{uid})===true),'Chave inválida ou já utilizada.',403);
+          const changed=await authAdmin('/'+encodeURIComponent(uid),'PUT',{password:b.senha});
+          insist(changed.ok,'O provedor recusou a alteração. A chave foi consumida. Utilize a recuperação por e-mail ou suporte do projeto.',400);
+          return reply(200,{ok:true});
+        }
         case 'recuperar': {
           const {email}=fields(b,['email']);
           const r=await auth('recover?redirect_to='+encodeURIComponent(origin+'/'),{method:'POST',body:JSON.stringify({email})});
@@ -97,7 +154,7 @@ export function createPortal(config, remote = fetch) {
           insist(r.status<500,'Serviço de login indisponível.',503);
           insist(r.ok,'E-mail ou senha inválidos.',403);
           const s=await r.json();
-          insist(authorized(s.user) && s.access_token,'Conta sem acesso administrativo.',403);
+          insist(await authorized(s.user) && s.access_token,'Conta sem acesso administrativo.',403);
           res.setHeader('Set-Cookie',sessionCookie(s.access_token,Math.max(1,Math.floor(s.expires_in))));
           return reply(200,{ok:true});
         }
@@ -113,6 +170,9 @@ export function createPortal(config, remote = fetch) {
           data=fields(b,['id','titulo','turma','curso','descricao','categoria'],['autor']);
           if(b.imagem!==undefined)data.imagem=photo(b);
           break;
+        case 'admin/editar-acao':
+          data=fields(b,['id','titulo','descricao']);if(b.imagem!==undefined)data.imagem=photo(b);break;
+        case 'admin/excluir-oficina':case 'admin/apagar-ideia':case 'admin/arquivar-ideia':case 'admin/arquivar-noticia':
         case 'admin/excluir-noticia':data=fields(b,['id']);break;
         case 'admin/acao':data={...fields(b,['titulo','descricao']),imagem:photo(b)};break;
         case 'admin/editar':data={...workshop(b,true),...fields(b,['id']),localLegado:!salas.has(b.local)};break;

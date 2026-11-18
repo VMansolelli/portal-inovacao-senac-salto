@@ -15,7 +15,7 @@ async function api(path,body) {
   return result;
 }
 document.body.insertAdjacentHTML('beforeend',`<div class="toast" id="feedback" role="status"></div>
-<dialog id="restritoDialog" aria-label="Área restrita"><div class="restrito-page"><div class="restrito-top"><strong>Área restrita</strong><div class="account-actions"><button class="back" id="back">Voltar ao portal</button><button type="button" id="logout" hidden>Sair da conta</button></div></div><div class="restrito-body" id="painel"></div></div></dialog>
+<dialog id="restritoDialog" aria-label="Área restrita"><div class="restrito-page"><div class="restrito-top"><strong>Área restrita</strong><div class="account-actions"><button class="back" id="back">Voltar ao portal</button><button type="button" id="reserve" class="back" hidden>Chave de reserva</button><button type="button" id="logout" hidden>Sair da conta</button></div></div><div class="restrito-body" id="painel"></div></div></dialog>
 <dialog class="modal" id="popup" aria-labelledby="popupTitle" style="margin:auto;border:0"><button class="modal-close" aria-label="Fechar" id="closePopup">×</button><h3 class="modal-title" id="popupTitle"></h3><div id="popupBody"></div><p role="alert" id="popupErro"></p></dialog>`);
 const dialog=$('#popup'), admin=$('#restritoDialog'), panel=$('#painel');
 const originalWorkshop=$('#formOficina');
@@ -109,16 +109,15 @@ function news(row){
     if(row)await refreshBoth();
   });
 }
-let salasRequest;
-async function workshop(row){
-  const button=$('#openOficinaForm');
-  if(!row && button.disabled)return;
-  if(!row)button.disabled=true;
-  let salas;
-  try{
-    salasRequest??=api('salas');salas=new Map(await salasRequest);
-  }catch(e){salasRequest=null;notify('Não foi possível carregar as salas. Tente novamente.');return;}
-  finally{if(!row)button.disabled=false;}
+const salas=new Map([
+  ['Sala 1',29], ['Sala 2',15], ['Sala 3',24], ['Lab Digital 4',35],
+  ['Lab Software 5',38], ['Sala 6',29], ['Sala 7',29], ['Lab Software 8',38],
+  ['Lab Hardware 9',24], ['Sala 10',29], ['Sala 11',29], ['Lab Gastronomia 12',20],
+  ['Lab Bar 13',18], ['Lab Bem Estar 14',20], ['Sala 15',29], ['Sala 16',29],
+  ['Lab Beleza 17',32], ['Auditório',128], ['Biblioteca',48]
+]);
+function workshop(row){
+  const button=$("#openOficinaForm");
   const box=editor(row?'Editar oficina':'Nova oficina',wkForm,row?null:button);
   if(!box)return;
   const form=box.form, local=form.elements.local, vagas=form.elements.vagas;
@@ -147,26 +146,38 @@ async function refreshPublic(){
   $('#acoesGrid').innerHTML=cards('acao',r=>`<article class="mcard acao-card">${picture(r)}<h4>${esc(r.titulo)}</h4><p>${esc(r.descricao)}</p></article>`,'Nenhuma ação local publicada.');
   $('#saberesLista').innerHTML=cards('oficina',w=>`<article class="oficina-card"><div class="oficina-info"><h4>${esc(w.titulo)}</h4><div class="oficina-meta"><span>${workshopDetails(w)}</span></div></div>${w.inscritos<w.vagas?btn('Inscrever-se','inscrever',w.id):'<span class="vagas-badge">Vagas esgotadas</span>'}</article>`,'Nenhuma oficina aprovada no momento.');
 }
+let master=false, requests=[];
 const tabs={noticia:'Notícias',acao:'Ações locais',oficina:'Oficinas',email:'E-mails',inscritos:'Inscritos e PDF',ideia:'Ideias'};
 function adminCard(r){
   let content='',actions='';
   if(r.kind==='oficina'){
-    content=workshopDetails(r);actions=btn('Editar','editar',r.id);
+    content=workshopDetails(r);actions=btn('Editar','editar',r.id)+btn('Excluir oficina','excluir-oficina',r.id);
   }else if(r.kind==='ideia'){
     content=`${esc(r.nome||'Anônimo')} · ${esc(r.perfil)} · ${esc(r.categoria)}<p>${esc(r.texto)}</p>`;
   }else{
     content=`<p>${esc(r.descricao)}</p>`+(r.kind==='noticia'?[r.categoria,r.turma,r.curso,r.autor].filter(Boolean).map(esc).join(' · '):'');
   }
   if(r.kind==='noticia')actions=btn('Editar notícia','editar-noticia',r.id)+btn('Excluir notícia','excluir-noticia',r.id);
-  if(r.kind==='acao') actions=btn('Apagar ação','apagar',r.id);
+  if(r.kind==='ideia')actions=(r.status==='arquivada'?'':btn('Arquivar ideia','arquivar-ideia',r.id))+btn('Apagar ideia','apagar-ideia',r.id);
+  if(r.kind==='noticia' && r.status==='aprovada')actions+=btn('Arquivar notícia','arquivar-noticia',r.id);
+  if(r.kind==='acao') actions=btn('Editar ação','editar-acao',r.id)+btn('Apagar ação','apagar',r.id);
   if(r.status==='pendente' && ['oficina','noticia'].includes(r.kind)) actions+=btn('Aprovar','aprovada',r.id)+btn('Rejeitar e arquivar','arquivada',r.id);
   return `<article class="admin-row">${r.foto?`<a class="admin-photo" href="${esc(r.foto)}" target="_blank" rel="noopener" aria-label="Abrir foto de ${esc(r.titulo)}">${picture(r)}</a>`:''}<div class="record-copy"><b>${esc(r.titulo||'Ideia recebida')}</b><div>${content}</div></div><div class="admin-actions">${actions}</div></article>`;
 }
 function renderAdmin(){
-  $('#logout').hidden=false;
+  $('#reserve').hidden=false;$('#logout').hidden=false;
   let records=adminRows.filter(r=>r.kind===tab);
   let content='';
-  if(['email','inscritos'].includes(tab)){
+  const sections=master?{...tabs,acessos:'Autorizar administradores'}:tabs;
+  if(!sections[tab])tab='noticia';
+  if(tab==='acessos' && master){
+    content=requests.map(r=>`<article class="admin-row"><div><b>${esc(r.nome)}</b><p>${esc(r.email)} · ${esc(r.estado)}</p></div><div class="admin-actions">${r.estado==='ativa'?'':btn(r.estado==='aguarda ativação'?'Gerar novo convite':'Aprovar','aprovar-acesso',r.id)}${['pendente','aguarda ativação'].includes(r.estado)?btn('Rejeitar','rejeitar-acesso',r.id):''}</div></article>`).join('');
+  }else if(tab==='ideia'){
+    for(const [status,title] of [['pendente','Recebidas'],['arquivada','Arquivadas']]){
+      const group=records.filter(r=>r.status===status);
+      content+=`<h3 class="admin-heading">${title} <span>${group.length}</span></h3>`+(group.map(adminCard).join('')||'<p>Nenhuma ideia.</p>');
+    }
+  }else if(['email','inscritos'].includes(tab)){
     records=adminRows.filter(r=>r.kind==='oficina' && (tab==='email'||r.status==='aprovada'||r.inscritos));
     content=records.map(w=>`<article class="admin-row"><div><b>${esc(w.titulo)}</b><p>${tab==='email'?esc(w.docente)+' · '+esc(w.email)+' · '+esc(w.status):w.inscritos+' inscrito(s) de '+w.vagas+' vagas'}</p></div>${tab==='email'?btn('Preparar e-mail','mensagem',w.id):btn('Ver inscritos e baixar PDF','lista',w.id)}</article>`).join('');
   }else if(['noticia','oficina'].includes(tab)){
@@ -175,14 +186,19 @@ function renderAdmin(){
       content+=`<h3 class="admin-heading">${title} <span>${group.length}</span></h3>`+(group.map(adminCard).join('')||'<p>Nenhum registro.</p>');
     }
   }else content=records.map(adminCard).join('');
-  panel.innerHTML=`<div class="management"><nav class="admin-tabs" aria-label="Seções do painel">${Object.entries(tabs).map(([k,v])=>`<button type="button" class="admin-tab ${tab===k?'active':''}" aria-current="${tab===k?'page':'false'}" data-tab="${k}">${v}</button>`).join('')}</nav><section class="management-main"><h2>${tabs[tab]}</h2>${tab==='acao'?btn('Adicionar ação local','nova'):''}${content||'<p>Nenhum registro recebido.</p>'}</section></div>`;
+  panel.innerHTML=`<div class="management"><nav class="admin-tabs" aria-label="Seções do painel">${Object.entries(sections).map(([k,v])=>`<button type="button" class="admin-tab ${tab===k?'active':''}" aria-current="${tab===k?'page':'false'}" data-tab="${k}">${v}</button>`).join('')}</nav><section class="management-main"><h2>${sections[tab]}</h2>${tab==='acao'?btn('Adicionar ação local','nova'):''}${content||'<p>Nenhum registro recebido.</p>'}</section></div>`;
 }
 async function refreshBoth(){await Promise.all([refreshPublic(),loadAdmin()]);}
 async function loadAdmin(){
-  try{adminRows=await api('admin/lista');renderAdmin();}
+  try{
+    const [rows,profile]=await Promise.all([api('admin/lista'),api('admin/perfil')]);
+    adminRows=rows;master=profile.master===true;
+    requests=master && tab==='acessos'?await api('master/lista'):[];
+    renderAdmin();
+  }
   catch(e){
     adminRows=[];
-    $('#logout').hidden=true;
+    $('#reserve').hidden=true;$('#logout').hidden=true;master=false;requests=[];
     if(e.status!==403){panel.innerHTML='<p role="alert">'+esc(e.message)+'</p>';return;}
     panel.innerHTML=`<div class="login-layout">
       <div class="login-brand">
@@ -203,12 +219,18 @@ async function loadAdmin(){
         <p class="login-error" role="alert"></p>
         <button type="submit" class="login-submit">Entrar no painel <span aria-hidden="true">→</span></button>
         <button type="button" class="reset-link" id="forgot">Esqueci minha senha</button>
+        <button type="button" class="reset-link" id="request-access">Solicitar acesso administrativo</button>
+        <button type="button" class="reset-link" id="activate-access">Ativar meu convite</button>
       </form>
     </div>`;
     const art=$('.brand-mark').cloneNode(true);
     art.removeAttribute('class');
     $('.login-art',panel).append(art);
     const form=$('form',panel);
+    $('#request-access').onclick=()=>formPopup('Solicitar acesso','Seu pedido será avaliado por Victor.',field('nome','Nome')+field('email','E-mail institucional','email'),'Enviar solicitação',async d=>{
+      await api('solicitar',d);dialog.close();$('.login-intro',panel).textContent='Solicitação registrada. Aguarde o contato de Victor.';
+    });
+    $('#activate-access').onclick=()=>credentialForm(true);
     $('#forgot').onclick=()=>recoveryForm(form.elements.email.value);
     const toggle=$('.login-toggle',form);
     toggle.onclick=()=>{
@@ -228,6 +250,17 @@ async function loadAdmin(){
     });
   }
 }
+function credentialForm(activation){
+  const endpoint=activation?'ativar':'usar-reserva';
+  const help=activation?'Use o convite entregue por Victor. Se já tiver uma conta, informe sua senha atual.':'Use a chave de reserva gerada anteriormente no painel.';
+  formPopup(activation?'Ativar conta':'Recuperar com chave',help,field('email','E-mail institucional','email')+field('codigo',activation?'Convite':'Chave de reserva')+
+    '<label>Senha<input name="senha" type="password" autocomplete="new-password" minlength="8" required></label><label>Confirme a senha<input name="confirmacao" type="password" autocomplete="new-password" required></label>',
+    activation?'Ativar conta':'Alterar senha',async d=>{
+      if(d.senha!==d.confirmacao)throw Error('As senhas devem coincidir.');
+      await api(endpoint,{email:d.email,codigo:d.codigo,senha:d.senha});dialog.close();await loadAdmin();
+      const intro=$('.login-intro',panel);if(intro)intro.textContent='Tudo certo. Entre com seu e-mail e senha.';
+    });
+}
 function recoveryForm(email){
   const form=$('.login-form',panel);
   form.innerHTML=`<h2 id="login-title">Recuperar senha</h2>
@@ -236,8 +269,9 @@ function recoveryForm(email){
     <input id="recover-email" type="email" name="email" autocomplete="username" required>
     <p role="status" class="login-intro"></p><p role="alert" class="login-error"></p>
     <button type="submit" class="login-submit">Enviar link</button>
-    <button type="button" class="reset-link" id="to-login">Voltar ao login</button>`;
+    <button type="button" class="reset-link" id="by-key">Usar chave de reserva</button><button type="button" class="reset-link" id="to-login">Voltar ao login</button>`;
   form.elements.email.value=email;form.elements.email.focus();
+  $('#by-key').onclick=()=>credentialForm(false);
   $('#to-login').onclick=loadAdmin;
   wireSubmit(form,async data=>{
     const error=$('[role=alert]',form),status=$('[role=status]',form);
@@ -279,6 +313,25 @@ function message(w){
 async function action(button){
   const op=button.dataset.do,id=button.dataset.id;
   const w=(op==='inscrever'?publicRows:adminRows).find(r=>r.id===id);
+  if(op==='aprovar-acesso' || op==='rejeitar-acesso'){
+    const r=requests.find(item=>item.id===id);if(!master||!r)return;
+    const approve=op==='aprovar-acesso';
+    if(!confirm((approve?'Autorizar ':'Rejeitar ')+r.email+'?'))return;
+    const reply=await api(approve?'master/aprovar':'master/rejeitar',{id});
+    if(approve)showCode('Convite de ativação','Entregue este convite apenas à pessoa identificada em '+r.email+'. É válido por 24 horas.',reply.codigo);
+    await loadAdmin();return;
+  }
+  if(op==='editar-acao'){
+    formPopup('Editar ação','Escolha uma nova foto apenas se desejar trocá-la.',field('titulo','Título')+field('descricao','Texto','textarea')+field('imagem','Nova foto','file',false),'Salvar alterações',async d=>{
+      if(d.imagem?.size)d.imagem=await jpeg(d.imagem);else delete d.imagem;
+      await api('admin/editar-acao',{...d,id});dialog.close();await refreshBoth();
+    });
+    const f=$('form',dialog);f.elements.titulo.value=w.titulo;f.elements.descricao.value=w.descricao;return;
+  }
+  const confirmations={'excluir-oficina':'Excluir a oficina e todas as inscrições vinculadas?', 'apagar-ideia':'Apagar definitivamente esta ideia?', 'arquivar-ideia':'Mover a ideia para Arquivadas?', 'arquivar-noticia':'Retirar a notícia do mural e arquivar?'};
+  if(Object.hasOwn(confirmations,op)){
+    if(confirm(confirmations[op])){await api('admin/'+op,{id});await refreshBoth();}return;
+  }
   if(op==='editar-noticia')return news(w);
   if(op==='excluir-noticia'){
     if(!confirm('Excluir definitivamente a notícia “'+w.titulo+'”?'))return;
@@ -304,18 +357,26 @@ async function action(button){
   }else await api('admin/moderar',{id,status:op});
   await refreshBoth();
 }
+function showCode(title,hint,code){
+  open(title,`<p>${esc(hint)}</p><label>Código<input type="text" readonly value="${esc(code)}"></label>`);
+  dialog.addEventListener('close',()=>$('#popupBody').replaceChildren(),{once:true});
+}
 document.addEventListener('click',async e=>{
+  if(e.target.closest('#reserve')){
+    if(!confirm('Gerar uma chave de reserva pessoal? Uma chave anterior deixará de funcionar.'))return;
+    try{const r=await api('admin/reserva',{});showCode('Sua chave de reserva','Guarde em seu gerenciador de senhas. A chave funciona uma única vez.',r.codigo);}catch(err){alert(err.message);}return;
+  }
   if(e.target.closest('#logout')){
     try{await api('sair',{});adminRows=[];await loadAdmin();}catch(err){alert(err.message);}
     return;
   }
   const b=e.target.closest('[data-do],[data-tab]');if(!b)return;
-  if(b.dataset.tab){tab=b.dataset.tab;renderAdmin();return;}
+  if(b.dataset.tab){tab=b.dataset.tab;if(tab==='acessos')await loadAdmin();else renderAdmin();return;}
   b.disabled=true;
   try{await action(b);}catch(err){if(admin.open)alert(err.message);else notify(err.message);}finally{b.disabled=false;}
 });
 $('#back').onclick=()=>admin.close();
-admin.onclose=()=>{$('#logout').hidden=true;adminRows=[];panel.replaceChildren();};
+admin.onclose=()=>{$('#reserve').hidden=true;$('#logout').hidden=true;master=false;requests=[];adminRows=[];panel.replaceChildren();};
 $('#closePopup').onclick=()=>dialog.close();
 $('#openNoticiaModal').onclick=()=>news();
 $('#openOficinaForm').onclick=()=>workshop();
