@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Senac Salto · Portal de Inovação</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header>
+      <div class="nav-inner">
+        <a href="#" class="brand">
+          <svg class="brand-mark" viewBox="0 0 220 220" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <polygon points="110,20 190,110 150,190 110,150 70,190 30,110" fill="#F7F3EA" stroke="#0F2A4A" stroke-width="6" />
+            <polygon points="110,20 150,190 110,150" fill="#004A8D" opacity=".85" />
+            <polygon points="110,20 70,190 110,150" fill="#F7941D" opacity=".9" />
+            <polygon points="110,20 190,110 110,150" fill="#0F2A4A" opacity=".08" />
+          </svg>
+          <div class="brand-text">
+            <strong>PORTAL</strong>
+            <span>INOVAÇÃO</span>
+          </div>
+        </a>
+        <nav class="links" id="navLinks">
+          <a href="#quemsomos">Quem Somos</a>
+          <a href="#oquefazemos">O que Fazemos</a>
+          <a href="#saberes">Troca de Saberes</a>
+          <a href="#enviar">Envie sua Ideia</a>
+          <button type="button" class="navlink" id="navRestrito">Área Restrita</button>
+        </nav>
+        <div class="nav-actions">
+          <a href="#mural" class="btn btn-blue btn-sm">Notícias</a>
+          <a href="#enviar" class="btn btn-orange btn-sm">Enviar Ideia</a>
+        </div>
+        <button type="button" class="burger" id="burgerBtn" aria-label="Abrir menu"><span></span><span></span><span></span></button>
+      </div>
+    </header>
+    <main id="top">
+      <!-- HERO -->
+      <section class="hero">
+        <svg class="decor squiggle decor-hero-wave" viewBox="0 0 100 40"><path d="M2 20 Q 20 2, 38 20 T 74 20 T 110 20" stroke="#F7941D" stroke-width="5" fill="none" stroke-linecap="round" /></svg>
+        <div class="decor tri tri-orange decor-hero-triangle"></div>
+        <div class="decor circle-solid decor-hero-circle"></div>
+        <div class="decor dot-grid decor-hero-dots"></div>
+        <div class="decor tri-outline decor-hero-outline"></div>
+        <div class="wrap hero-grid">
+          <div>
+            <h1>Toda ideia começa <em>dobrada</em> nós ajudamos a desdobrar.</h1>
+            <p class="lead">
+              Portal da inovação do Senac Salto<br />
+              Acompanhe ações realizadas no mural de notícias, troque conhecimento com colegas no saberes em movimento e envie ideias.
+            </p>
+            <div class="hero-cta">
+              <a href="#mural" class="btn btn-blue">Ver mural de notícias</a>
+              <a href="#enviar" class="btn btn-orange">Enviar minha ideia</a>
+            </div>
+          </div>
+          <div class="crane-stage">
+            <div class="crane-paper p1"></div>
+            <div class="crane-paper p2"></div>
+            <svg id="craneSvg" class="crane-float" viewBox="0 0 220 220" fill="none">
+              <polygon points="110,20 190,110 150,190 110,150 70,190 30,110" fill="#F7F3EA" stroke="#0F2A4A" stroke-width="2" />
+              <polygon points="110,20 150,190 110,150" fill="#0B63C5" opacity=".85" />
+              <polygon points="110,20 70,190 110,150" fill="#E8792E" opacity=".9" />
+              <polygon points="110,20 190,110 110,150" fill="#0F2A4A" opacity=".08" />
+              <circle cx="110" cy="20" r="4" fill="#0F2A4A" />
+            </svg>
+          </div>
+        </div>
+      </section>
+
+      <!-- MURAL DE NOTICIAS -->
+      <section id="mural" class="section-alt">
+        <div class="wrap">
+          <div class="section-head section-head-row">
+            <div>
+              <h2>Mural de Notícias</h2>
+            </div>
+            <button class="btn btn-orange" id="openNoticiaModal">Publicar uma Notícia</button>
+          </div>
+          <div class="mural-grid" id="muralGrid"></div>
+        </div>
+      </section>
+
+      <!-- QUEM SOMOS -->
+      <section id="quemsomos">
+        <svg class="decor squiggle decor-about-wave" viewBox="0 0 100 40"><path d="M2 20 Q 20 2, 38 20 T 74 20 T 110 20" stroke="#004A8D" stroke-width="5" fill="none" stroke-linecap="round" /></svg>
+        <div class="wrap">
+          <div class="section-head"> 
+            <h2>Quem Somos</h2>
+          </div>
+          <div class="quem-grid">
+            <div class="quem-main">
+              <div class="decor circle-solid decor-about-circle"></div>
+              <h3>Ideias que viram ação</h3>
+              <p>Somos um comitê do Senac Salto dedicados a transformar sugestões em melhorias reais para a nossa comunidade escolar.</p>
+              <p>Escuta ativa, transparência total e respeito absoluto</p>
+            </div>
+            <div class="mini-grid">
+              <div class="mini-card">
+                <h4>Nossa Missão</h4>
+                <p>Inovar práticas pedagógicas e tecnológicas, criando um ambiente de aprendizagem mais dinâmico para os alunos.</p>
+              </div>
+              <div class="mini-card">
+                <h4>Nosso Compromisso</h4>
+                <p>Escuta ativa, transparência total e respeito absoluto em cada sugestão recebida.</p>
+              </div>
+              <div class="mini-card">
+                <h4>Onde estamos</h4>
+                <p>Unidade Senac Salto</p>
+              </div>
+              <div class="mini-card">
+                <h4>Anonimato</h4>
+                <p>Você decide se quer se identificar. Toda ideia é levada a sério, com ou sem nome.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- O QUE FAZEMOS -->
+      <section id="oquefazemos" class="section-alt">
+        <div class="wrap">
+          <div class="section-head">
+            <h2>O que Fazemos</h2>
+          </div>
+          <div class="acoes-grid" id="acoesGrid"></div>
+        </div>
+      </section>
+
+      <!-- TROCA DE SABERES -->
+      <section id="saberes">
+        <div class="decor dot-grid decor-saberes-dots"></div>
+        <div class="wrap">
+          <div class="section-head">
+            <h2>Saberes em Movimento</h2>
+            <p class="section-description">Professores oferecem oficinas rápidas sobre o que sabem Excel, Canva, Oratória, o que for útil e qualquer funcionário e aluno pode se inscrever.</p>
+          </div>
+          <div class="saberes-actions">
+            <button class="btn btn-blue" id="openOficinaForm">Sou docente, quero oferecer uma oficina</button>
+            <a href="#saberesLista" class="btn btn-outline">Ver oficinas e me inscrever</a>
+          </div>
+
+          <form id="formOficina" class="mcard form-grid form-oficina hidden">
+            <h4 class="form-title">Nova oficina</h4>
+            <div><label>Nome da oficina *</label><input type="text" id="ofNome" placeholder="Ex: Oficina de Excel Avançado" required /></div>
+            <div class="two-col">
+              <div><label>Seu nome (docente) *</label><input type="text" id="ofMinistrante" required /></div>
+              <div><label>Área / curso *</label><input type="text" id="ofArea" required /></div>
+            </div>
+            <div class="two-col">
+              <div><label>Data *</label><input type="date" id="ofData" required /></div>
+              <div class="time-fields">
+                <div class="field-grow"><label>Início *</label><input type="time" id="ofInicio" required /></div>
+                <div class="field-grow"><label>Término *</label><input type="time" id="ofTermino" required /></div>
+              </div>
+            </div>
+            <div class="two-col">
+              <div>
+                <label>Local *</label>
+                <select id="ofLocal" required>
+                  <option value="">Selecione o local</option>
+                  <option>🎓 Sala de Aula</option>
+                  <option>🎭 Auditório</option>
+                  <option>💻 Laboratório de Informática</option>
+                  <option>📚 Biblioteca</option>
+                  <option>🌿 Área Externa</option>
+                  <option>📍 Outro</option>
+                </select>
+              </div>
+              <div><label>Vagas (opcional)</label><input type="number" id="ofVagas" min="1" placeholder="Deixe em branco para sem limite" /></div>
+            </div>
+            <button type="submit" class="btn btn-blue btn-center">Publicar Oficina</button>
+          </form>
+
+          <div id="saberesLista"></div>
+        </div>
+      </section>
+
+      <!-- ENVIE SUA IDEIA -->
+      <section id="enviar" class="section-alt">
+        <div class="wrap">
+          <div class="two-col">
+            <div>
+              <h2 class="section-title-spaced">Envie sua Ideia</h2>
+              <p>Sua contribuição é valiosa. Compartilhe sugestões para melhorar o dia a dia do Senac Salto pode ser anônimo, sem problema nenhum.</p>
+              <div class="note note-spaced"><span>Suas informações são tratadas com total sigilo e respeito.</span></div>
+            </div>
+            <form id="formIdeia" class="mcard form-grid">
+              <div><label>Seu nome (opcional)</label><input type="text" id="ideiaNome" placeholder="Deixe em branco para enviar anônimo" /></div>
+              <div>
+                <label>Você é</label>
+                <div class="choice-row" id="ideiaPerfil" data-value="Aluno">
+                  <button type="button" class="choice active" data-val="Aluno">Aluno</button>
+                  <button type="button" class="choice" data-val="Funcionário">Funcionário</button>
+                  <button type="button" class="choice" data-val="Outro">Outro</button>
+                </div>
+              </div>
+              <div>
+                <label>Categoria da ideia</label>
+                <select id="ideiaCategoria">
+                  <option>Tecnologia e Infraestrutura</option>
+                  <option>Métodos Pedagógicos</option>
+                  <option>Ambiente e Espaços</option>
+                  <option>Eventos e Atividades</option>
+                  <option>Atendimento e Serviços</option>
+                  <option>Outro</option>
+                </select>
+              </div>
+              <div><label>Sua ideia *</label><textarea id="ideiaTexto" required placeholder="Conte com detalhes a sua sugestão..."></textarea></div>
+              <button type="submit" class="btn btn-orange btn-center">Enviar Minha Ideia</button>
+            </form>
+          </div>
+        </div>
+      </section>
+    </main>
+    <script src="pdf.js" defer></script>
+    <script src="script.js" defer></script>
+  </body>
+</html>

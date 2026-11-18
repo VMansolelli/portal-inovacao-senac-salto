@@ -1,0 +1,1556 @@
+/* Guarda as cores, a fonte e as medidas do tema. var(--blue), por exemplo, reutiliza o azul definido aqui. */
+:root {
+  --blue:#004A8D;
+  --blue-dark:#00335F;
+  --blue-tint:#EAF1FA;
+  --orange:#F7941D;
+  --orange-dark:#D97D0A;
+  --peach:#FDC180;
+  --peach-tint:#FFF1E0;
+  --ink:#182430;
+  --ink-soft:#57677A;
+  --bg:#FBFCFE;
+  --white:#FFFFFF;
+  --line:#E1E8F0;
+  --radius:16px;
+  --shadow:0 14px 30px -16px rgba(0,45,90,.28);
+  --maxw:1180px;
+  --font: 'Helvetica Neue', Helvetica, Arial, 'Segoe UI', sans-serif;
+}
+
+/* Inclui borda e espaçamento interno nas medidas de largura e altura de todos os elementos. */
+* {
+  box-sizing:border-box;
+}
+
+/* Faz a página rolar suavemente ao seguir um link para uma seção, como href="#mural". */
+html {
+  scroll-behavior:smooth;
+}
+
+/* Respeita a preferência de quem ativou a redução de movimento no dispositivo. */
+@media (prefers-reduced-motion: reduce) {
+  /* Usa a rolagem padrão quando a redução de movimento está ativa. */
+  html {
+    scroll-behavior:auto;
+  }
+  /* Encurta as animações e transições para que o movimento seja quase instantâneo. */
+  * {
+    animation-duration:.01ms !important;
+    transition-duration:.01ms !important;
+  }
+}
+
+/* Define a fonte, a cor de texto e o fundo da página e remove a margem padrão do navegador. */
+body {
+  margin:0;
+  font-family:var(--font);
+  color:var(--ink);
+  background:var(--bg);
+}
+
+/* Padroniza os quatro níveis de título com azul, peso forte e letras ligeiramente mais próximas. */
+h1,h2,h3,h4 {
+  font-family:var(--font);
+  font-weight:800;
+  color:var(--blue);
+  margin:0;
+  letter-spacing:-.01em;
+}
+
+/* Dá aos parágrafos uma altura de linha de 1,65 vez a fonte e remove a margem padrão. */
+p {
+  line-height:1.65;
+  color:var(--ink-soft);
+  margin:0;
+}
+
+/* Faz os links herdarem a cor do texto ao redor. */
+a {
+  color:inherit;
+  text-decoration: none;
+}
+
+/* Limita a largura do conteúdo. As margens automáticas o centralizam e o padding reserva espaço nas laterais. */
+.wrap {
+  max-width:var(--maxw);
+  margin:0 auto;
+  padding:0 24px;
+  position:relative;
+}
+
+/* Usa a fonte do elemento pai e mostra o cursor de mão sobre botões. */
+button {
+  font-family:inherit;
+  cursor:pointer;
+}
+
+/* Padroniza a fonte dos campos de entrada, listas de seleção e áreas de texto. */
+input,select,textarea {
+  font-family:inherit;
+  font-size:15px;
+}
+
+/* Cria o formato comum dos botões. Flexbox alinha texto e ícone, e gap separa os dois. */
+.btn {
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  border:none;
+  border-radius:10px;
+  padding:13px 26px;
+  font-weight:700;
+  font-size:15px;
+  transition:transform .15s ease, box-shadow .15s ease;
+}
+
+/* Desloca o botão 1px para baixo enquanto ele é pressionado. */
+.btn:active {
+  transform:translateY(1px);
+}
+
+/* Aplica fundo laranja, texto branco e sombra alaranjada ao botão. */
+.btn-orange {
+  background:var(--orange);
+  color:#fff;
+  box-shadow:0 10px 22px -10px rgba(247,148,29,.7);
+}
+
+/* Escurece o botão laranja quando o ponteiro passa sobre ele. */
+.btn-orange:hover {
+  background:var(--orange-dark);
+}
+
+/* Aplica fundo azul, texto branco e sombra azulada ao botão. */
+.btn-blue {
+  background:var(--blue);
+  color:#fff;
+  box-shadow:0 10px 22px -10px rgba(0,74,141,.55);
+}
+
+/* Escurece o botão azul quando o ponteiro passa sobre ele. */
+.btn-blue:hover {
+  background:var(--blue-dark);
+}
+
+/* Desenha um botão de contorno azul com fundo transparente. */
+.btn-outline {
+  background:transparent;
+  border:2px solid var(--blue);
+  color:var(--blue);
+}
+
+/* Preenche o botão de contorno com azul e muda o texto para branco ao passar o ponteiro. */
+.btn-outline:hover {
+  background:var(--blue);
+  color:#fff;
+}
+
+/* Usa azul claro no fundo e azul mais intenso no texto. */
+.btn-ghost {
+  background:var(--blue-tint);
+  color:var(--blue);
+}
+
+/* Altera o tom do fundo do botão claro ao passar o ponteiro. */
+.btn-ghost:hover {
+  background:#dbe9fa;
+}
+
+/* Compacta o botão reduzindo o espaço interno, a fonte e o arredondamento. */
+.btn-sm {
+  padding:8px 16px;
+  font-size:13.5px;
+  border-radius:8px;
+}
+
+/* Usa tons avermelhados para identificar ações como excluir um registro. */
+.btn-danger {
+  background:#FDE6E1;
+  color:#B4401E;
+}
+
+/* ---------- memphis shapes ---------- */
+/* Posiciona o enfeite livremente e deixa os cliques passarem para o conteúdo abaixo. */
+.decor {
+  position:absolute;
+  z-index:0;
+  pointer-events:none;
+}
+
+/* Repete um ponto azul a cada 15px nos dois eixos para criar uma malha semitransparente. */
+.dot-grid {
+  background-image:radial-gradient(circle, var(--blue) 2.4px, transparent 2.4px);
+  background-size:15px 15px;
+  opacity:.35;
+}
+
+/* Zera as dimensões da caixa para que suas bordas possam formar um triângulo. */
+.tri {
+  width:0;
+  height:0;
+  opacity:.85;
+}
+
+/* Com .tri, as bordas laterais transparentes dão inclinação à borda laranja, formando uma ponta para cima. */
+.tri-orange {
+  border-left:22px solid transparent;
+  border-right:22px solid transparent;
+  border-bottom:38px solid var(--orange);
+}
+
+/* Recorta a caixa e sua borda com três pontos: topo central e dois cantos inferiores. */
+.tri-outline {
+  width:46px;
+  height:40px;
+  border:3px solid var(--blue);
+  clip-path:polygon(50% 0,0 100%,100% 100%);
+  opacity:.7;
+}
+
+/* Arredonda a caixa em 50%. Com largura e altura iguais, ela forma um círculo. */
+.circle-solid {
+  border-radius:50%;
+}
+
+/* Arredonda os dois cantos superiores e mantém a base reta. */
+.halfmoon {
+  border-radius:999px 999px 0 0;
+}
+
+/* Deixa o enfeite ondulado com 80% de opacidade. */
+.squiggle {
+  opacity:.8;
+}
+
+/* ---------- header ---------- */
+/* Mantém o cabeçalho no topo durante a rolagem. O fundo translúcido permite ver o desfoque atrás dele. */
+header {
+  position:sticky;
+  top:0;
+  z-index:50;
+  background:rgba(251,252,254,.92);
+  backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--line);
+}
+
+/* Distribui marca, navegação e ações na mesma linha e centraliza o conjunto na página. */
+.nav-inner {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:14px 24px;
+  max-width:var(--maxw);
+  margin:0 auto;
+}
+
+/* Alinha símbolo e texto da marca lado a lado, com 10px de distância. */
+.brand {
+  display:flex;
+  align-items:center;
+  gap:10px;
+  text-decoration:none;
+}
+
+/* Reserva uma área de 36 por 36px para o símbolo e impede que o flexbox a encolha. */
+.brand-mark {
+  width:36px;
+  height:36px;
+  flex:none;
+}
+
+/* Empilha o nome e o complemento da marca com linhas próximas. */
+.brand-text {
+  display:flex;
+  flex-direction:column;
+  line-height:1.1;
+}
+
+/* Destaca em azul e negrito o texto da marca marcado com a tag b. */
+.brand-text b {
+  font-weight:800;
+  font-size:17px;
+  color:var(--blue);
+}
+
+/* Exibe o complemento da marca em laranja, em maiúsculas e com letras espaçadas. */
+.brand-text span {
+  font-size:10.5px;
+  letter-spacing:.12em;
+  color:var(--orange-dark);
+  text-transform:uppercase;
+  font-weight:700;
+}
+
+/* Organiza os itens de navegação em uma linha com 24px entre eles. */
+nav.links {
+  display:flex;
+  gap:24px;
+  align-items:center;
+}
+
+/* Dá aparência semelhante aos links e aos botões de navegação. */
+nav.links a,nav.links button.navlink {
+  font-size:14.5px;
+  font-weight:700;
+  text-decoration:none;
+  color:var(--ink);
+  background:none;
+  border:none;
+  padding:4px 0;
+}
+
+/* Muda o texto dos itens de navegação para azul ao passar o ponteiro. */
+nav.links a:hover,nav.links button.navlink:hover {
+  color:var(--blue);
+}
+
+/* Agrupa os botões de ação do cabeçalho com 10px entre eles. */
+.nav-actions {
+  display:flex;
+  gap:10px;
+  align-items:center;
+}
+
+/* Oculta o botão de menu no layout amplo e prepara sua área clicável. */
+.burger {
+  display:none;
+  background:none;
+  border:none;
+  padding:6px;
+}
+
+/* Cada span desenha uma das barras horizontais do ícone de menu. */
+.burger span {
+  display:block;
+  width:22px;
+  height:2px;
+  background:var(--blue);
+  margin:5px 0;
+  border-radius:2px;
+}
+
+/* Ativa o layout de navegação compacto quando a largura disponível é de até 960px. */
+@media (max-width:960px) {
+  /* Empilha os links no painel abaixo do topo. Inicialmente ele está invisível e não recebe cliques. */
+  nav.links {
+    position:fixed;
+    inset:64px 0 0 0;
+    background:var(--bg);
+    flex-direction:column;
+    padding:28px 24px;
+    gap:6px;
+    transform:translateY(-8px);
+    opacity:0;
+    pointer-events:none;
+    transition:.2s ease;
+    align-items:flex-start;
+  }
+  /* Ao receber a classe open, o menu volta à posição final, aparece e aceita cliques. */
+  nav.links.open {
+    transform:translateY(0);
+    opacity:1;
+    pointer-events:auto;
+  }
+  /* Amplia a área de toque de cada item e separa os links com uma linha. */
+  nav.links a,nav.links button.navlink {
+    width:100%;
+    padding:14px 0;
+    border-bottom:1px solid var(--line);
+    font-size:17px;
+  }
+  /* Esconde o grupo de ações do cabeçalho no layout compacto. */
+  .nav-actions {
+    display:none;
+  }
+  /* Exibe o botão de três barras para abrir o menu. */
+  .burger {
+    display:block;
+  }
+}
+
+/* ---------- hero ---------- */
+/* Reserva espaço acima e abaixo da abertura da página e recorta enfeites que ultrapassam seus limites. */
+.hero {
+  position:relative;
+  overflow:hidden;
+  padding:80px 0 64px;
+}
+
+/* Divide a abertura em duas colunas. A primeira recebe uma parcela maior do espaço disponível. */
+.hero-grid {
+  display:grid;
+  grid-template-columns:1.1fr .9fr;
+  gap:56px;
+  align-items:center;
+  position:relative;
+  z-index:1;
+}
+
+/* Adapta a abertura da página em larguras de até 880px. */
+@media (max-width:880px) {
+  /* Empilha o conteúdo da abertura em uma única coluna. */
+  .hero-grid {
+    grid-template-columns:1fr;
+  }
+}
+
+/* Faz o título acompanhar a largura da tela. clamp limita a fonte entre 34px e 52px. */
+.hero h1 {
+  font-size:clamp(34px,5vw,52px);
+  font-weight:800;
+  margin:16px 0 18px;
+  line-height:1.08;
+  color:var(--blue-dark);
+}
+
+/* Usa laranja para destacar o trecho do título marcado com em e remove seu itálico padrão. */
+.hero h1 em {
+  font-style:normal;
+  color:var(--orange);
+}
+
+/* Limita o comprimento das linhas do texto de apresentação e deixa espaço antes dos botões. */
+.hero p.lead {
+  font-size:17.5px;
+  max-width:58ch;
+  margin-bottom:28px;
+}
+
+/* Coloca os botões de chamada para ação lado a lado e permite a quebra de linha. */
+.hero-cta {
+  display:flex;
+  gap:14px;
+  flex-wrap:wrap;
+}
+
+/* Organiza os indicadores da abertura em uma fileira que pode quebrar em telas estreitas. */
+.stat-row {
+  display:flex;
+  gap:30px;
+  margin-top:38px;
+  flex-wrap:wrap;
+}
+
+/* Coloca o número de cada indicador em sua própria linha e o destaca em azul. */
+.stat b {
+  display:block;
+  font-size:26px;
+  color:var(--blue);
+  font-weight:800;
+}
+
+/* Formata a legenda dos indicadores em letras menores e maiúsculas. */
+.stat span {
+  font-size:12px;
+  color:var(--ink-soft);
+  font-weight:600;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+}
+
+/* Cria uma área de 400px de altura e centraliza o avião nos dois eixos. */
+.plane-stage {
+  position:relative;
+  height:400px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index:1;
+}
+
+/* Dimensiona o avião, aplica uma sombra que acompanha o desenho e inicia sua animação de entrada. */
+#planeSvg {
+  width:230px;
+  height:230px;
+  filter:drop-shadow(0 18px 26px rgba(0,45,90,.28));
+  animation:planeFold 1.3s cubic-bezier(.2,.8,.2,1) both;
+}
+
+/* Define as três etapas da entrada do avião. As porcentagens indicam o progresso da animação. */
+@keyframes planeFold {
+  /* O avião começa invisível, inclinado e com 40% do tamanho original. */
+  0% {
+    transform:scale(.4) rotate(-14deg);
+    opacity:0;
+  }
+  /* O avião fica visível e passa um pouco do tamanho final para criar o efeito de acomodação. */
+  60% {
+    transform:scale(1.06) rotate(3deg);
+    opacity:1;
+  }
+  /* Termina no tamanho original, sem inclinação e totalmente visível. */
+  100% {
+    transform:scale(1) rotate(0);
+    opacity:1;
+  }
+}
+
+/* Repete o movimento de flutuação a cada cinco segundos. */
+.plane-float {
+  animation:planeFloat 5s ease-in-out infinite;
+}
+
+/* Define a subida e a volta do avião ao longo de um ciclo de flutuação. */
+@keyframes planeFloat {
+  /* Começa e termina o ciclo na posição vertical original. */
+  0%,100% {
+    transform:translateY(0);
+  }
+  /* Na metade do ciclo, desloca o avião 12px para cima. */
+  50% {
+    transform:translateY(-12px);
+  }
+}
+
+/* ---------- sections ---------- */
+/* Dá espaço vertical às seções e cria uma referência para posicionar enfeites dentro delas. */
+section {
+  padding:84px 0;
+  position:relative;
+}
+
+/* Limita a largura da introdução de cada seção e a separa do conteúdo seguinte. */
+.section-head {
+  max-width:640px;
+  margin-bottom:44px;
+  position:relative;
+  z-index:1;
+}
+
+/* Ajusta o título da seção à tela, entre 27px e 36px. */
+.section-head h2 {
+  font-size:clamp(27px,3.2vw,36px);
+  margin:14px 0 12px;
+}
+
+/* Diferencia a seção com fundo branco e linhas finas em cima e embaixo. */
+.section-alt {
+  background:var(--white);
+  border-top:1px solid var(--line);
+  border-bottom:1px solid var(--line);
+}
+
+/* mural / news cards */
+/* Organiza o mural de notícias em três colunas de mesma largura. */
+.mural-grid {
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:20px;
+  position:relative;
+  z-index:1;
+}
+
+/* Ajusta o mural quando há até 940px de largura. */
+@media (max-width:940px) {
+  /* Passa o mural de três para duas colunas. */
+  .mural-grid {
+    grid-template-columns:repeat(2,1fr);
+  }
+}
+
+/* Ajusta o mural para telas de até 620px. */
+@media (max-width:620px) {
+  /* Mostra uma notícia por linha. */
+  .mural-grid {
+    grid-template-columns:1fr;
+  }
+}
+
+/* Destaca o primeiro cartão do mural fazendo-o ocupar duas colunas e duas linhas. */
+.mural-grid .ncard:first-child {
+  grid-column:span 2;
+  grid-row:span 2;
+}
+
+/* Adapta a notícia em destaque para a versão de uma coluna do mural. */
+@media (max-width:620px) {
+  /* Faz a primeira notícia ocupar apenas uma coluna e deixa sua linha ter altura automática. */
+  .mural-grid .ncard:first-child {
+    grid-column:span 1;
+    grid-row:auto;
+  }
+}
+
+/* Cria o cartão de notícia com sombra e cantos arredondados. overflow recorta a foto nos cantos. */
+.ncard {
+  background:var(--white);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  overflow:hidden;
+  box-shadow:var(--shadow);
+  display:flex;
+  flex-direction:column;
+  transition:transform .18s ease;
+}
+
+/* Eleva o cartão 4px ao passar o ponteiro. */
+.ncard:hover {
+  transform:translateY(-4px);
+}
+
+/* Preenche a largura do cartão com a foto. object-fit: cover preserva a proporção e recorta o excesso. */
+.ncard img {
+  width:100%;
+  height:190px;
+  object-fit:cover;
+  display:block;
+  background:var(--blue-tint);
+}
+
+/* Reserva uma foto mais alta para a notícia em destaque. */
+.mural-grid .ncard:first-child img {
+  height:280px;
+}
+
+/* Empilha os textos do cartão e ocupa o espaço disponível abaixo da imagem. */
+.ncard-body {
+  padding:18px 18px 20px;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  flex:1;
+}
+
+/* Desenha a etiqueta de categoria com fundo claro e largura ajustada ao texto. */
+.tag {
+  display:inline-block;
+  font-size:11px;
+  font-weight:700;
+  letter-spacing:.04em;
+  padding:4px 11px;
+  border-radius:999px;
+  background:var(--peach-tint);
+  color:var(--orange-dark);
+  width:fit-content;
+}
+
+/* Formata o título de cada notícia em azul escuro. */
+.ncard h4 {
+  font-size:17px;
+  color:var(--blue-dark);
+}
+
+/* Aumenta o título da primeira notícia para reforçar o destaque. */
+.mural-grid .ncard:first-child h4 {
+  font-size:22px;
+}
+
+/* Define o tamanho do texto de resumo da notícia. */
+.ncard p {
+  font-size:13.5px;
+}
+
+/* Empurra os dados da turma para o fim do cartão e os separa por uma linha tracejada. */
+.ncard .meta {
+  font-size:12px;
+  color:var(--ink-soft);
+  font-weight:600;
+  margin-top:auto;
+  padding-top:6px;
+  border-top:1px dashed var(--line);
+}
+
+/* fold-free card style: dot corner instead of fold */
+/* Define o cartão branco com borda, sombra e espaço interno para seu conteúdo. */
+.mcard {
+  position:relative;
+  background:var(--white);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  padding:24px 22px;
+  box-shadow:var(--shadow);
+  transition:transform .18s ease;
+}
+
+/* Eleva o cartão 3px ao passar o ponteiro. */
+.mcard:hover {
+  transform:translateY(-3px);
+}
+
+/* Desenha um ponto laranja no canto superior direito sem exigir outro elemento no HTML. */
+.mcard::before {
+  content:"";
+  position:absolute;
+  top:14px;
+  right:14px;
+  width:9px;
+  height:9px;
+  border-radius:50%;
+  background:var(--orange);
+}
+
+/* quem somos */
+/* Divide a seção Quem Somos em duas colunas, com a primeira ligeiramente maior. */
+.quem-grid {
+  display:grid;
+  grid-template-columns:1.05fr 1fr;
+  gap:20px;
+  position:relative;
+  z-index:1;
+}
+
+/* Adapta a seção Quem Somos para telas de até 880px. */
+@media (max-width:880px) {
+  /* Coloca os blocos da seção um abaixo do outro. */
+  .quem-grid {
+    grid-template-columns:1fr;
+  }
+}
+
+/* Cria o painel azul e centraliza verticalmente os textos empilhados dentro dele. */
+.quem-main {
+  background:var(--blue);
+  color:#fff;
+  border-radius:20px;
+  padding:38px;
+  display:flex;
+  flex-direction:column;
+  gap:16px;
+  justify-content:center;
+  position:relative;
+  overflow:hidden;
+}
+
+/* Destaca o título do painel em branco. */
+.quem-main h3 {
+  color:#fff;
+  font-size:23px;
+}
+
+/* Usa azul claro para os parágrafos sobre o fundo azul. */
+.quem-main p {
+  color:#CFE0F3;
+}
+
+/* Organiza os cartões menores em duas colunas iguais. */
+.mini-grid {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:18px;
+}
+
+/* Adapta os cartões menores em telas de até 520px. */
+@media (max-width:520px) {
+  /* Apresenta um cartão pequeno por linha. */
+  .mini-grid {
+    grid-template-columns:1fr;
+  }
+}
+
+/* Dá aos cartões menores um fundo branco, borda arredondada e espaço interno. */
+.mini-card {
+  background:var(--white);
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:20px;
+}
+
+/* Destaca o título do cartão e deixa espaço antes da descrição. */
+.mini-card h4 {
+  font-size:15.5px;
+  margin-bottom:8px;
+  color:var(--blue-dark);
+}
+
+/* Define o tamanho da descrição dos cartões menores. */
+.mini-card p {
+  font-size:13.5px;
+}
+
+/* acoes grid */
+/* Distribui as ações do projeto em quatro colunas iguais. */
+.acoes-grid {
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:18px;
+  position:relative;
+  z-index:1;
+}
+
+/* Adapta a grade de ações em larguras de até 980px. */
+@media (max-width:980px) {
+  /* Mostra duas ações por linha. */
+  .acoes-grid {
+    grid-template-columns:repeat(2,1fr);
+  }
+}
+
+/* Adapta as ações para telas de até 560px. */
+@media (max-width:560px) {
+  /* Mostra uma ação por linha. */
+  .acoes-grid {
+    grid-template-columns:1fr;
+  }
+}
+
+/* Destaca o número da ação com laranja e letras espaçadas. */
+.acao-num {
+  font-size:11.5px;
+  color:var(--orange-dark);
+  letter-spacing:.1em;
+  font-weight:800;
+}
+
+/* Amplia o ícone da ação e o separa do número e do título. */
+.acao-icon {
+  font-size:25px;
+  margin:10px 0 8px;
+}
+
+/* Define a aparência do título da ação e o espaço antes do parágrafo. */
+.acao-card h4 {
+  font-size:16px;
+  margin-bottom:6px;
+  color:var(--blue-dark);
+}
+
+/* Define o tamanho da descrição da ação. */
+.acao-card p {
+  font-size:13.5px;
+}
+
+/* troca de saberes */
+/* Organiza os botões da seção Troca de Saberes e permite que mudem de linha. */
+.saberes-actions {
+  display:flex;
+  gap:14px;
+  flex-wrap:wrap;
+  margin-bottom:30px;
+  position:relative;
+  z-index:1;
+}
+
+/* Coloca os dados da oficina e seu botão em lados opostos do cartão. */
+.oficina-card {
+  background:var(--white);
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:22px;
+  display:flex;
+  justify-content:space-between;
+  gap:20px;
+  align-items:center;
+  margin-bottom:14px;
+  position:relative;
+  z-index:1;
+}
+
+/* Adapta os cartões de oficina em larguras de até 640px. */
+@media (max-width:640px) {
+  /* Empilha as informações e o botão, alinhando ambos à esquerda. */
+  .oficina-card {
+    flex-direction:column;
+    align-items:flex-start;
+  }
+}
+
+/* Destaca o nome da oficina e o separa dos detalhes. */
+.oficina-info h4 {
+  font-size:16.5px;
+  color:var(--blue-dark);
+  margin-bottom:6px;
+}
+
+/* Agrupa data, horário e outros dados em uma linha que pode quebrar. */
+.oficina-meta {
+  display:flex;
+  gap:14px;
+  flex-wrap:wrap;
+  font-size:12.5px;
+  color:var(--ink-soft);
+  font-weight:600;
+}
+
+/* Mostra a quantidade de vagas em uma etiqueta arredondada. */
+.vagas-badge {
+  font-size:11px;
+  font-weight:700;
+  padding:3px 10px;
+  border-radius:999px;
+  background:var(--peach-tint);
+  color:var(--orange-dark);
+}
+
+/* forms */
+/* Distribui os campos do formulário em uma grade com 16px entre eles. */
+.form-grid {
+  display:grid;
+  gap:16px;
+}
+
+/* Exibe o rótulo do campo em linha própria, com destaque e espaço abaixo. */
+label {
+  display:block;
+  font-size:13.5px;
+  font-weight:700;
+  color:var(--blue-dark);
+  margin-bottom:6px;
+}
+
+/* Usa texto menor para as orientações que acompanham um campo. */
+.field-hint {
+  font-size:12px;
+  color:var(--ink-soft);
+  font-weight:400;
+  margin-top:4px;
+}
+
+/* Faz os campos ocuparem toda a largura disponível e padroniza suas bordas e o espaço interno. */
+input[type=text],input[type=email],input[type=number],input[type=date],input[type=time],select,textarea {
+  width:100%;
+  padding:12px 14px;
+  border:1.5px solid var(--line);
+  border-radius:10px;
+  background:#fff;
+  color:var(--ink);
+}
+
+/* Reserva pelo menos 110px de altura para o texto e permite redimensionar o campo verticalmente. */
+textarea {
+  min-height:110px;
+  resize:vertical;
+}
+
+/* Desenha um contorno azul ao redor do campo em foco para indicar onde a pessoa está digitando. */
+input:focus,select:focus,textarea:focus {
+  outline:2px solid var(--blue);
+  outline-offset:1px;
+  border-color:var(--blue);
+}
+
+/* Agrupa os botões de escolha e permite quebrar a linha quando faltar espaço. */
+.choice-row {
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+/* Define a aparência de uma opção do grupo antes da seleção. */
+.choice {
+  border:1.5px solid var(--line);
+  border-radius:10px;
+  padding:10px 16px;
+  font-size:14px;
+  background:#fff;
+  color:var(--ink-soft);
+  font-weight:600;
+}
+
+/* Destaca em azul a opção que recebeu a classe active. */
+.choice.active {
+  border-color:var(--blue);
+  background:var(--blue-tint);
+  color:var(--blue);
+}
+
+/* Identifica a área clicável de envio de foto com fundo claro e borda tracejada. */
+.upload-box {
+  border:2px dashed var(--peach);
+  border-radius:12px;
+  padding:22px;
+  text-align:center;
+  cursor:pointer;
+  background:var(--peach-tint);
+}
+
+/* Limita a altura da prévia da foto e arredonda seus cantos. */
+.upload-box img {
+  max-height:150px;
+  border-radius:8px;
+  margin-top:10px;
+}
+
+/* Divide o conteúdo em duas colunas iguais e alinha os itens pelo topo. */
+.two-col {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:24px;
+  align-items:start;
+}
+
+/* Adapta o layout de duas colunas em larguras de até 820px. */
+@media (max-width:820px) {
+  /* Empilha as duas colunas. */
+  .two-col {
+    grid-template-columns:1fr;
+  }
+}
+
+/* Alinha os elementos de uma observação pelo topo, com fonte pequena e espaço entre eles. */
+.note {
+  font-size:12.5px;
+  color:var(--ink-soft);
+  display:flex;
+  gap:6px;
+  align-items:flex-start;
+  margin-top:6px;
+}
+
+/* Prepara o aviso temporário no rodapé da tela. Começa invisível e deslocado 20px para baixo. */
+.toast {
+  position:fixed;
+  bottom:24px;
+  left:50%;
+  transform:translateX(-50%) translateY(20px);
+  background:var(--blue-dark);
+  color:#fff;
+  padding:14px 22px;
+  border-radius:12px;
+  font-size:14.5px;
+  opacity:0;
+  pointer-events:none;
+  transition:.25s ease;
+  z-index:400;
+  box-shadow:0 14px 30px -10px rgba(0,0,0,.4);
+}
+
+/* Quando a classe show é aplicada, o aviso aparece e sobe até sua posição final. */
+.toast.show {
+  opacity:1;
+  transform:translateX(-50%) translateY(0);
+}
+
+/* Centraliza a mensagem de lista vazia em uma caixa com borda tracejada. */
+.empty-state {
+  border:2px dashed var(--line);
+  border-radius:14px;
+  padding:40px;
+  text-align:center;
+  color:var(--ink-soft);
+  background:var(--white);
+  position:relative;
+  z-index:1;
+}
+
+/* modal */
+/* Prepara uma camada escura que cobre a tela atrás da janela e começa oculta. */
+.modal-overlay {
+  position:fixed;
+  inset:0;
+  background:rgba(0,25,50,.55);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  z-index:100;
+  padding:20px;
+}
+
+/* A classe open exibe a camada e ativa o flexbox que centraliza a janela. */
+.modal-overlay.open {
+  display:flex;
+}
+
+/* Limita a largura da janela a 540px e permite rolagem interna se o conteúdo exceder 88% da altura da tela. */
+.modal {
+  background:var(--bg);
+  border-radius:18px;
+  max-width:540px;
+  width:100%;
+  max-height:88vh;
+  overflow-y:auto;
+  padding:30px;
+  position:relative;
+  box-shadow:0 30px 60px -20px rgba(0,0,0,.4);
+}
+
+/* Posiciona o botão de fechar no canto superior direito da janela. */
+.modal-close {
+  position:absolute;
+  top:16px;
+  right:16px;
+  background:none;
+  border:none;
+  font-size:20px;
+  color:var(--ink-soft);
+}
+
+/* restrito dialog -> full page takeover */
+/* Dimensiona o diálogo da área restrita para ocupar a tela inteira. */
+dialog#restritoDialog {
+  position:fixed;
+  inset:0;
+  width:100vw;
+  height:100vh;
+  max-width:100vw;
+  max-height:100vh;
+  margin:0;
+  padding:0;
+  border:none;
+  background:var(--blue-dark);
+  color:#fff;
+}
+
+/* Escurece o conteúdo atrás do diálogo nativo quando ele abre em modo modal. */
+dialog#restritoDialog::backdrop {
+  background:rgba(0,10,25,.7);
+}
+
+/* Garante à área restrita pelo menos a altura da tela e permite rolagem vertical quando necessária. */
+.restrito-page {
+  min-height:100vh;
+  overflow-y:auto;
+}
+
+/* Mantém a barra da área restrita no topo e distribui seus controles pelos dois lados. */
+.restrito-top {
+  position:sticky;
+  top:0;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:18px 28px;
+  background:var(--blue-dark);
+  border-bottom:1px solid rgba(255,255,255,.14);
+  z-index:5;
+}
+
+/* Dá ao botão de voltar um fundo translúcido e extremidades arredondadas. */
+.restrito-top .back {
+  background:rgba(255,255,255,.1);
+  border:none;
+  color:#fff;
+  padding:9px 16px;
+  border-radius:999px;
+  font-weight:700;
+  font-size:13.5px;
+}
+
+/* Centraliza o conteúdo administrativo e limita sua largura a 1000px. */
+.restrito-body {
+  max-width:1000px;
+  margin:0 auto;
+  padding:40px 24px 70px;
+}
+
+/* Centraliza o cartão de acesso e limita sua largura a 400px. */
+.admin-gate {
+  max-width:400px;
+  margin:60px auto;
+  text-align:center;
+  background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.16);
+  border-radius:18px;
+  padding:40px;
+}
+
+/* Usa um fundo claro no campo dentro do cartão de acesso. */
+.admin-gate input {
+  background:rgba(255,255,255,.9);
+}
+
+/* Coloca as abas lado a lado e permite que passem para a linha seguinte. */
+.admin-tabs {
+  display:flex;
+  gap:8px;
+  margin-bottom:30px;
+  flex-wrap:wrap;
+}
+
+/* Define as cores, a borda e o tamanho de uma aba administrativa. */
+.admin-tab {
+  background:rgba(255,255,255,.08);
+  border:1px solid rgba(255,255,255,.2);
+  padding:9px 16px;
+  border-radius:10px;
+  font-size:13.5px;
+  font-weight:700;
+  color:#dfe8f4;
+}
+
+/* Destaca em laranja a aba selecionada. */
+.admin-tab.active {
+  background:var(--orange);
+  color:#fff;
+  border-color:var(--orange);
+}
+
+/* Mantém os painéis de conteúdo ocultos por padrão. */
+.admin-panel {
+  display:none;
+}
+
+/* Exibe o painel que recebeu a classe active. */
+.admin-panel.active {
+  display:block;
+}
+
+/* Organiza os dados e botões de cada registro em uma linha que pode quebrar. */
+.admin-row {
+  background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.15);
+  border-radius:12px;
+  padding:16px 18px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:14px;
+  margin-bottom:10px;
+  flex-wrap:wrap;
+}
+
+/* Formata as informações complementares do registro em texto menor. */
+.admin-row .meta {
+  font-size:12.5px;
+  color:#B9CBDF;
+  margin-top:4px;
+}
+
+/* Exibe o texto em negrito da linha administrativa em branco. */
+.admin-row b {
+  color:#fff;
+}
+
+/* Usa um tom claro para parágrafos sobre o fundo escuro do painel. */
+.admin-row p {
+  color:#dbe6f2;
+}
+
+/* Desenha a etiqueta de situação com texto laranja. */
+.badge {
+  font-size:11px;
+  font-weight:700;
+  padding:3px 9px;
+  border-radius:999px;
+  background:rgba(247,148,29,.2);
+  color:var(--orange);
+}
+
+/* Aplica a variação verde da etiqueta para indicar uma situação aprovada. */
+.badge.ok {
+  background:rgba(80,200,120,.18);
+  color:#63d68a;
+}
+
+/* Distribui os cartões de indicadores em três colunas. */
+.stat-cards {
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:14px;
+  margin-bottom:30px;
+}
+
+/* Adapta os indicadores em larguras de até 640px. */
+@media (max-width:640px) {
+  /* Mostra um indicador por linha. */
+  .stat-cards {
+    grid-template-columns:1fr;
+  }
+}
+
+/* Dá a cada indicador um cartão com borda e fundo translúcido. */
+.stat-card {
+  background:rgba(255,255,255,.07);
+  border:1px solid rgba(255,255,255,.15);
+  border-radius:14px;
+  padding:20px;
+}
+
+/* Destaca o número do indicador em branco, em uma linha própria. */
+.stat-card b {
+  font-size:28px;
+  color:#fff;
+  display:block;
+}
+
+/* Formata a legenda do número com fonte menor e azul claro. */
+.stat-card span {
+  font-size:12.5px;
+  color:#B9CBDF;
+}
+
+/* Separa o rodapé do conteúdo e aplica fundo azul escuro. */
+footer {
+  background:var(--blue-dark);
+  color:#C9D9EB;
+  padding:60px 0 30px;
+  margin-top:40px;
+}
+
+/* Destaca os títulos do rodapé em branco. */
+footer h4 {
+  color:#fff;
+  font-size:15px;
+  margin-bottom:12px;
+}
+
+/* Divide o rodapé em três colunas e reserva mais espaço para a primeira. */
+.footer-grid {
+  display:grid;
+  grid-template-columns:1.4fr 1fr 1fr;
+  gap:40px;
+}
+
+/* Adapta o rodapé em larguras de até 760px. */
+@media (max-width:760px) {
+  /* Empilha as colunas do rodapé e reduz a distância entre elas. */
+  .footer-grid {
+    grid-template-columns:1fr;
+    gap:26px;
+  }
+}
+
+/* Padroniza a cor e o tamanho dos parágrafos e itens de lista do rodapé. */
+footer p, footer li {
+  color:#9FB4CE;
+  font-size:13.5px;
+}
+
+/* Remove os marcadores e organiza os itens da lista verticalmente. */
+footer ul {
+  list-style:none;
+  padding:0;
+  margin:0;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+
+/* Dá ao botão de navegação do rodapé a aparência de um link de texto. */
+footer button.navlink {
+  background:none;
+  border:none;
+  color:#9FB4CE;
+  font-size:13.5px;
+  padding:0;
+  text-align:left;
+  cursor:pointer;
+}
+
+/* Separa a faixa final do rodapé com uma linha e distribui os textos pelos dois lados. */
+.foot-bottom {
+  border-top:1px solid rgba(255,255,255,.12);
+  margin-top:40px;
+  padding-top:20px;
+  font-size:12.5px;
+  color:#7E9AC0;
+  display:flex;
+  justify-content:space-between;
+  flex-wrap:wrap;
+  gap:10px;
+}
+
+/* Oculta o elemento e libera o espaço que ele ocupava. !important dá prioridade a essa declaração. */
+.hidden {
+  display:none !important;
+}
+
+/* ---------- utility / layout helpers ---------- */
+/* Distribui os itens do cabeçalho da seção em uma linha, alinha suas bases e permite quebra. */
+.section-head-row {
+  display: flex;
+  max-width: none;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+/* Separa a descrição da seção do elemento acima. */
+.section-description {
+  margin-top: 12px;
+}
+
+/* Limita a descrição a 600px de largura. */
+.section-description-limited {
+  max-width: 600px;
+}
+
+/* Acrescenta espaço acima e abaixo do título da seção. */
+.section-title-spaced {
+  margin: 14px 0;
+}
+
+/* Centraliza horizontalmente o conteúdo de um botão flexível. */
+.btn-center {
+  justify-content: center;
+}
+
+/* Permite que o campo cresça para ocupar o espaço livre na linha flexível. */
+.field-grow {
+  flex: 1;
+}
+
+/* Coloca os campos de horário lado a lado, separados por 10px. */
+.time-fields {
+  display: flex;
+  gap: 10px;
+}
+
+/* Abre mais espaço acima da observação. */
+.note-spaced {
+  margin-top: 18px;
+}
+
+/* Limita a largura do formulário de oficina e o separa do conteúdo seguinte. */
+.form-oficina {
+  max-width: 640px;
+  margin-bottom: 36px;
+}
+
+/* Formata o título do formulário em azul escuro. */
+.form-title {
+  color: var(--blue-dark);
+  font-size: 16px;
+}
+
+/* Estende a mensagem de lista vazia da primeira à última linha vertical da grade, cobrindo todas as colunas. */
+.empty-state-full {
+  grid-column: 1 / -1;
+}
+
+/* ---------- decorative positions ---------- */
+/* Posiciona a onda perto do canto superior esquerdo da abertura. */
+.decor-hero-wave {
+  top: 14%;
+  left: 4%;
+  width: 90px;
+}
+
+/* Posiciona o triângulo perto do canto superior direito da abertura. */
+.decor-hero-triangle {
+  top: 8%;
+  right: 8%;
+}
+
+/* Dimensiona o círculo cor de pêssego e o posiciona perto da base à esquerda. */
+.decor-hero-circle {
+  bottom: 18%;
+  left: 2%;
+  width: 26px;
+  height: 26px;
+  background: var(--peach);
+}
+
+/* Reserva uma área para o padrão de pontos no canto inferior direito da abertura. */
+.decor-hero-dots {
+  right: 4%;
+  bottom: 6%;
+  width: 120px;
+  height: 90px;
+  border-radius: 12px;
+}
+
+/* Posiciona o contorno decorativo à esquerda, próximo da metade da altura da abertura. */
+.decor-hero-outline {
+  top: 46%;
+  left: 1%;
+}
+
+/* Posiciona a onda no alto, à direita da seção Quem Somos. */
+.decor-about-wave {
+  top: 6%;
+  right: 2%;
+  width: 80px;
+}
+
+/* Desloca parte do círculo translúcido para fora do canto superior direito do painel. */
+.decor-about-circle {
+  top: -20px;
+  right: -20px;
+  width: 70px;
+  height: 70px;
+  background: rgba(253, 193, 128, .25);
+}
+
+/* Posiciona a malha de pontos no alto, à direita da seção Troca de Saberes. */
+.decor-saberes-dots {
+  top: 4%;
+  right: 2%;
+  width: 140px;
+  height: 100px;
+  border-radius: 12px;
+}
+
+/* ---------- modal helpers ---------- */
+/* Destaca o título da janela e deixa uma pequena margem antes da descrição. */
+.modal-title {
+  margin-bottom: 6px;
+  color: var(--blue-dark);
+  font-size: 20px;
+}
+
+/* Separa a descrição da janela do conteúdo seguinte. */
+.modal-description {
+  margin-bottom: 20px;
+  font-size: 13.5px;
+}
+
+/* ---------- admin helpers ---------- */
+/* Destaca o título da área restrita com fonte pesada e leve espaçamento entre letras. */
+.restrito-title {
+  font-weight: 800;
+  letter-spacing: .02em;
+}
+
+/* Formata a orientação de acesso e a separa do campo abaixo. */
+.admin-gate-description {
+  margin-bottom: 16px;
+  color: #dbe6f2;
+}
+
+/* Faz o campo de senha ocupar a largura disponível e deixa espaço até o botão. */
+.admin-password {
+  width: 100%;
+  margin-bottom: 14px;
+}
+
+/* Estende o botão de entrada por toda a largura disponível. */
+.admin-enter {
+  width: 100%;
+}
+
+/* Separa a dica de acesso do botão e usa uma cor clara sobre o painel escuro. */
+.admin-hint {
+  margin-top: 14px;
+  color: #b9cbdf;
+}
+
+/* Formata o título de um grupo administrativo e deixa espaço para os registros abaixo. */
+.admin-heading {
+  margin-bottom: 14px;
+  color: #fff;
+  font-size: 16px;
+}
+
+/* Cria uma separação maior antes de um novo grupo administrativo. */
+.admin-heading-spaced {
+  margin-top: 26px;
+}
+
+/* Alinha a miniatura e as informações principais de um registro na mesma linha. */
+.admin-item-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Recorta a miniatura em um quadrado de 56px de lado, preservando a proporção da imagem. */
+.admin-item-image {
+  width: 56px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+/* Agrupa os botões de ação do registro com 8px entre eles. */
+.admin-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* Define a cor da mensagem exibida quando a lista administrativa está vazia. */
+.admin-empty {
+  color: #b9cbdf;
+}
+
+/* Limita a largura do texto de cada ideia e o separa dos dados de quem a enviou. */
+.admin-idea-text {
+  max-width: 520px;
+  margin-top: 6px;
+  font-size: 13.5px;
+}
+
+
+
+
