@@ -55,16 +55,15 @@ test('Oficina exige vagas, e-mail e horário válido',()=>{
   }
 });
 
-test('Recuperação por código e autorização de administradores adicionais',async ()=>{
+test('Recuperação por link e autorização de administradores adicionais',async ()=>{
   const calls=[];
   const current={id:'segundo',email_confirmed_at:'2026-01-01'};
   const server=createPortal({FRONTEND_ORIGIN:'https://portal.example',SUPABASE_URL:'https://db.example',ADMIN_USER_ID:'principal',ADMIN_USER_IDS:' segundo , terceiro ',SUPABASE_PUBLISHABLE_KEY:'test',SUPABASE_SECRET_KEY:'test'},async(url,opts)=>{
     const body=JSON.parse(opts.body||'{}');
     calls.push([url.pathname,opts.method,body]);
-    if(url.pathname.endsWith('/verify')){
-      if(body.token==='000000')return Response.json({}, {status:403});
-      const user=body.token==='999999'?{...current,id:'fora'}:current;
-      return Response.json({access_token:'token',user});
+    if(url.pathname.endsWith('/user') && opts.method!=='PUT'){
+      if(opts.headers.Authorization==='Bearer expirado')return Response.json({}, {status:403});
+      return Response.json(opts.headers.Authorization==='Bearer fora'?{...current,id:'fora'}:current);
     }
     if(url.pathname.endsWith('/token'))return Response.json({access_token:'token',user:current,expires_in:3600});
     return Response.json({});
@@ -79,9 +78,9 @@ test('Recuperação por código e autorização de administradores adicionais',a
   const info={email:'docente@example.org',senha:'nova-senha-123'};
   assert.equal(await post('entrar',info),200);
   assert.equal(await post('recuperar',info),200);
-  for(const [codigo,status] of [['000000',400],['999999',403],['123456',200]]){
-    assert.equal(await post('redefinir',{...info,codigo}),status);
+  for(const [token,status] of [['expirado',403],['fora',403],['valido',200]]){
+    assert.equal(await post('redefinir',{...info,token}),status);
   }
   assert.equal(calls.filter(([path,method])=>path.endsWith('/user') && method==='PUT').length,1);
-  assert.equal(calls.find(([path])=>path.endsWith('/verify'))[2].type,'recovery');
+  assert.ok(calls.some(([path])=>path.endsWith('/recover')));
 });

@@ -52,6 +52,7 @@ export function createPortal(config, remote = fetch) {
     try{
       const path=new URL(req.url,'http://localhost').pathname;
       if(req.method==='GET' && path==='/health')return reply(200,{ok:true});
+      if(req.method==='GET' && path==='/api/recuperar')return reply(200,{modo:'link'});
       insist(path.startsWith('/api/'),'Página não encontrada.',404);
       const op=path.slice(5);
       const token=(req.headers.cookie||'').split(';').map(s=>s.trim()).find(s=>s.startsWith(cookieName+'='))?.slice(cookieName.length+1);
@@ -72,24 +73,18 @@ export function createPortal(config, remote = fetch) {
       switch(op){
         case 'recuperar': {
           const {email}=fields(b,['email']);
-          const r=await auth('recover',{method:'POST',body:JSON.stringify({email})});
-          insist(r.status!==429,'Aguarde antes de solicitar outro código.',429);
-          insist(r.status<500,'Não foi possível enviar o e-mail de recuperação.',503);
+          const r=await auth('recover?redirect_to='+encodeURIComponent(origin+'/'),{method:'POST',body:JSON.stringify({email})});
+          insist(r.status!==429,'Aguarde antes de solicitar outro link.',429);
+          insist(r.ok,'O serviço de e-mail não aceitou o pedido. Com o remetente padrão, confirme com o responsável se o endereço pode receber a mensagem.',503);
           return reply(200,{ok:true});
         }
         case 'redefinir': {
-          const {email,codigo}=fields(b,['email','codigo']);
-          insist(/^\d{6,10}$/.test(codigo),'Confira o código recebido por e-mail.');
+          insist(typeof b.token==='string' && b.token.length>0 && b.token.length<16000,'Abra o link enviado por e-mail.');
           insist(typeof b.senha==='string' && b.senha.length>=8 && b.senha.length<=1024,'Use uma senha com pelo menos 8 caracteres.');
-          const verify=await auth('verify',{method:'POST',body:JSON.stringify({email,token:codigo,type:'recovery'})});
-          insist(verify.status!==429,'Muitas tentativas. Aguarde antes de continuar.',429);
-          insist(verify.status<500,'Serviço de recuperação indisponível.',503);
-          insist(verify.ok,'Código inválido ou expirado. Confira o código ou solicite outro.',400);
-          const session=await verify.json();
-          insist(authorized(session.user) && session.access_token,'Esta conta não tem acesso ao painel.',403);
-          const headers={Authorization:'Bearer '+session.access_token};
+          insist(await admin(b.token),'O link expirou ou a conta não tem acesso administrativo. Solicite outro link.',403);
+          const headers={Authorization:'Bearer '+b.token};
           const change=await auth('user',{method:'PUT',headers,body:JSON.stringify({password:b.senha})});
-          insist(change.ok,'A senha não foi alterada. Solicite outro código e escolha uma nova senha conforme as regras da instituição.',400);
+          insist(change.ok,'A senha não foi alterada. Solicite outro link e escolha uma nova senha conforme as regras da instituição.',400);
           res.setHeader('Set-Cookie',sessionCookie('',0));
           return reply(200,{ok:true});
         }

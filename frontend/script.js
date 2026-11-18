@@ -171,39 +171,44 @@ async function loadAdmin(){
     });
   }
 }
-function recoveryForm(email, confirmCode=false){
+function recoveryForm(email){
   const form=$('.login-form',panel);
-  form.innerHTML=`<h2 id="login-title">${confirmCode?'Cadastre uma nova senha':'Recuperar senha'}</h2>
-    <p class="login-intro">${confirmCode?'Se a conta existir, você receberá um código por e-mail.':'Informe o e-mail institucional usado no painel.'}</p>
+  form.innerHTML=`<h2 id="login-title">Recuperar senha</h2>
+    <p class="login-intro">Informe seu e-mail para receber um link de redefinição.</p>
     <label for="recover-email">E-mail institucional</label>
     <input id="recover-email" type="email" name="email" autocomplete="username" required>
-    ${confirmCode?`<label for="recover-code">Código recebido</label><input id="recover-code" name="codigo" type="text" inputmode="numeric" pattern="[0-9]{6,10}" autocomplete="one-time-code" required>
-    <label for="recover-password">Nova senha</label><input id="recover-password" type="password" name="senha" autocomplete="new-password" minlength="8" placeholder="Pelo menos 8 caracteres" required>
-    <label for="recover-confirm">Confirme a nova senha</label><input id="recover-confirm" name="confirmacao" type="password" autocomplete="new-password" required>`:''}
-    <p role="alert" class="login-error"></p>
-    <button type="submit" class="login-submit">${confirmCode?'Salvar nova senha':'Enviar código'}</button>
-    ${confirmCode?'<button type="button" class="reset-link" id="again">Solicitar outro código</button>':''}
+    <p role="status" class="login-intro"></p><p role="alert" class="login-error"></p>
+    <button type="submit" class="login-submit">Enviar link</button>
     <button type="button" class="reset-link" id="to-login">Voltar ao login</button>`;
-  form.elements.email.value=email;
-  if(confirmCode){form.elements.email.readOnly=true;form.elements.codigo.focus();$('#again').onclick=()=>recoveryForm(email);}
-  else form.elements.email.focus();
+  form.elements.email.value=email;form.elements.email.focus();
   $('#to-login').onclick=loadAdmin;
   wireSubmit(form,async data=>{
-    const feedback=$('[role=alert]',form);
+    const error=$('[role=alert]',form),status=$('[role=status]',form);
+    error.textContent='';status.textContent='';
     try{
-      feedback.textContent='';
-      if(confirmCode){
-        if(data.senha!==data.confirmacao)throw Error('As duas senhas precisam ser iguais.');
-        await api('redefinir',{email:data.email,codigo:data.codigo,senha:data.senha});
-        await loadAdmin();
-        const intro=$('.login-intro',panel);
-        if(intro)intro.textContent='Senha alterada. Entre com sua nova senha.';
-      }else{
-        await api('recuperar',{email:data.email});
-        recoveryForm(data.email,true);
-      }
-    }catch(err){feedback.textContent=err.message;}
+      await api('recuperar',{email:data.email});
+      status.textContent='Se o endereço estiver habilitado para receber mensagens, verifique a caixa de entrada e o spam. Abra o link “Reset password”.';
+    }catch(e){error.textContent=e.status===404?'Recuperação indisponível. Peça ao responsável para verificar a versão da API no Render.':e.message;}
   });
+}
+function handleRecoveryLink(){
+  const params=new URLSearchParams(location.hash.slice(1));
+  if(params.get('type')!=='recovery' && !params.has('error_code') && !params.has('error'))return false;
+  const token=params.get('access_token');
+  history.replaceState(null,'',location.pathname+location.search);
+  if(!token || params.get('type')!=='recovery'){
+    open('Link indisponível','<p>Solicite um novo link na Área Restrita, em Esqueci minha senha.</p>');return true;
+  }
+  formPopup('Cadastre uma nova senha','Use pelo menos 8 caracteres.',
+    '<label>Nova senha<input name="senha" type="password" autocomplete="new-password" minlength="8" required></label><label>Confirme a senha<input name="confirma" type="password" autocomplete="new-password" required></label>',
+    'Salvar nova senha',async data=>{
+      if(data.senha!==data.confirma)throw Error('As duas senhas precisam ser iguais.');
+      await api('redefinir',{token,senha:data.senha});
+      dialog.close();await adminOpen();const intro=$('.login-intro',panel);
+      if(intro)intro.textContent='Senha alterada. Entre com a nova senha.';
+    });
+  dialog.addEventListener('close',()=>$('#popupBody').replaceChildren(),{once:true});
+  return true;
 }
 async function adminOpen(){if(!admin.open)admin.showModal();panel.textContent='Carregando painel…';await loadAdmin();}
 function message(w){
@@ -262,5 +267,5 @@ wireSubmit($('#formIdeia'),async (_,form)=>{
   form.reset();$('[data-val]',group).click();notify('Ideia enviada ao comitê!');
 });
 refreshPublic().catch(()=>{for(const id of ['muralGrid','acoesGrid','saberesLista'])$('#'+id).innerHTML=empty('Não foi possível carregar. Atualize a página para tentar novamente.');});
-if(new URLSearchParams(location.search).has('painel'))adminOpen();
+if(!handleRecoveryLink() && new URLSearchParams(location.search).has('painel'))adminOpen();
 })();
