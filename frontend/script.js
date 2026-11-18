@@ -84,10 +84,10 @@ function editor(title,html,button){
   form.removeAttribute('id');
   for(const input of form.querySelectorAll('[id]')){
     const label=form.querySelector('label[for="'+input.id+'"]');
-    input.id='public-'+input.id;if(label)label.htmlFor=input.id;
+    input.id=region.id+'-'+input.id;if(label)label.htmlFor=input.id;
   }
   const close=()=>{region.remove();button.setAttribute('aria-expanded','false');button.focus({preventScroll:true});};
-  $('.inline-heading button',region).onclick=()=>button.click();
+  $('.inline-heading button',region).onclick=()=>{region.hidden=true;button.setAttribute('aria-expanded','false');button.focus({preventScroll:true});};
   return {form,close};
 }
 function news(row){
@@ -347,10 +347,20 @@ async function action(button){
     open('Inscritos · '+w.titulo,`<p>${inscritos.length} de ${w.vagas} vagas preenchidas</p>${inscritos.map(r=>`<p><b>${esc(r.nome)}</b><br>${[r.email,r.cargo,r.area].filter(Boolean).map(esc).join(' · ')}</p>`).join('')||'<p>Nenhuma inscrição.</p>'}<button id="download" class="btn btn-blue">Baixar relatório em PDF</button>`);
     $('#download').onclick=()=>window.baixarLista(w,inscritos);return;
   }
-  if(op==='inscrever')return formPopup('Inscrever-se na oficina',esc(w.titulo)+' · '+date(w.data)+' · '+esc(w.inicio),field('nome','Nome completo')+field('email','E-mail','email')+field('cargo','Cargo ou vínculo (opcional)','text',false)+field('area','Área ou curso (opcional)','text',false),'Confirmar inscrição',async d=>{
-    try{await api('inscrever',{...d,workshop:id});}catch(e){await refreshPublic();throw e;}
-    dialog.close();notify('Inscrição confirmada!');await refreshPublic();
-  });
+  if(op==='inscrever'){
+    button.id='inscricao-'+id;
+    const controls=field('nome','Nome completo')+field('email','E-mail','email')+
+      field('cargo','Cargo ou vínculo (opcional)','text',false)+field('area','Área ou curso (opcional)','text',false);
+    const box=editor('Inscrever-se na oficina',`<p>${esc(w.titulo)} · ${date(w.data)} · ${esc(w.inicio)}</p>
+      <form class="form-grid">${controls}<button type="submit" class="btn btn-orange">Confirmar inscrição</button></form>`,button);
+    if(!box)return;
+    wireSubmit(box.form,async data=>{
+      await api('inscrever',{...data,workshop:id});
+      box.close();notify('Inscrição confirmada!');
+      try{await refreshPublic();}catch{notify('Inscrição confirmada. Atualize a página para consultar as vagas.');}
+    });
+    return;
+  }
   if(op==='apagar'){
     if(!confirm('Apagar a ação “'+w.titulo+'” do portal?'))return;
     await api('admin/apagar',{id});
@@ -381,8 +391,24 @@ $('#closePopup').onclick=()=>dialog.close();
 $('#openNoticiaModal').onclick=()=>news();
 $('#openOficinaForm').onclick=()=>workshop();
 $('#navRestrito').onclick=adminOpen;
-$('#burgerBtn').onclick=()=>$('#navLinks').classList.toggle('open');
-$('#navLinks').addEventListener('click',()=>$('#navLinks').classList.remove('open'));
+const burger=$('#burgerBtn'), nav=$('#navLinks');
+nav.before(burger);
+burger.setAttribute('aria-controls',nav.id);
+function mobileMenu(open){
+  nav.classList.toggle('open',open);
+  burger.setAttribute('aria-expanded',String(open));
+  burger.setAttribute('aria-label',open?'Fechar menu':'Abrir menu');
+}
+mobileMenu(false);
+burger.onclick=()=>mobileMenu(!nav.classList.contains('open'));
+nav.addEventListener('click',()=>mobileMenu(false));
+document.addEventListener('keydown',event=>{
+  if(event.key==='Escape' && nav.classList.contains('open')){mobileMenu(false);burger.focus();}
+});
+document.addEventListener('click',event=>{
+  if(nav.classList.contains('open') && !event.target.closest('.nav-inner'))mobileMenu(false);
+});
+matchMedia('(max-width:960px)').addEventListener('change',()=>mobileMenu(false));
 const group=$('#ideiaPerfil');
 group.onclick=e=>{const b=e.target.closest('[data-val]');if(b){$('.active',group)?.classList.remove('active');b.classList.add('active');group.dataset.value=b.dataset.val;}};
 wireSubmit($('#formIdeia'),async (_,form)=>{

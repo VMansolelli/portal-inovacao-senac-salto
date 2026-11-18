@@ -332,41 +332,21 @@ nav.links a:hover,nav.links button.navlink:hover {
 
 /* Ativa o layout de navegação compacto quando a largura disponível é de até 960px. */
 @media (max-width:960px) {
-  /* Empilha os links no painel abaixo do topo. Inicialmente ele está invisível e não recebe cliques. */
-  nav.links {
-    position:fixed;
-    inset:64px 0 0 0;
-    background:var(--bg);
-    flex-direction:column;
-    padding:28px 24px;
-    gap:6px;
-    transform:translateY(-8px);
-    opacity:0;
-    pointer-events:none;
-    transition:.2s ease;
-    align-items:flex-start;
-  }
-  /* Ao receber a classe open, o menu volta à posição final, aparece e aceita cliques. */
-  nav.links.open {
-    transform:translateY(0);
-    opacity:1;
-    pointer-events:auto;
-  }
-  /* Amplia a área de toque de cada item e separa os links com uma linha. */
-  nav.links a,nav.links button.navlink {
-    width:100%;
-    padding:14px 0;
-    border-bottom:1px solid var(--line);
-    font-size:17px;
-  }
-  /* Esconde o grupo de ações do cabeçalho no layout compacto. */
-  .nav-actions {
-    display:none;
-  }
-  /* Exibe o botão de três barras para abrir o menu. */
-  .burger {
-    display:block;
-  }
+  header {background:#fff;backdrop-filter:none;}
+  .nav-inner {flex-wrap:wrap;max-height:100dvh;overflow-y:auto;}
+  .nav-actions {display:none;}
+  .burger {display:block;min-width:44px;min-height:44px;border-radius:8px;}
+  .burger span {margin:5px auto;}
+  .burger[aria-expanded="true"] span:first-child {transform:translateY(7px) rotate(45deg);}
+  .burger[aria-expanded="true"] span:nth-child(2) {opacity:0;}
+  .burger[aria-expanded="true"] span:last-child {transform:translateY(-7px) rotate(-45deg);}
+  nav.links {display:none;width:100%;background:#fff;}
+  nav.links.open {display:flex;flex-direction:column;align-items:stretch;gap:0;margin-top:10px;border-top:1px solid var(--line);}
+  nav.links a,nav.links button.navlink {display:block;width:100%;min-height:44px;text-align:left;padding:13px 0;border-bottom:1px solid var(--line);font-size:16px;}
+  header .burger:focus-visible,nav.links :focus-visible {outline:2px solid var(--blue);outline-offset:1px;}
+  .decor,.crane-stage,.login-art {display:none;}
+  .hero .hero-grid {grid-template-columns:minmax(0,1fr);gap:0;}
+  .mcard::before {display:none;}
 }
 
 /* ---------- hero ---------- */
@@ -1674,3 +1654,5 @@ footer button.navlink {
 .inline-editor [role=alert] {color:#a02326;}
 .inline-editor [role=alert]:empty {display:none;}
 .management [data-do="excluir-noticia"] {background:white;color:#833c36;border-color:#dbc7c4;}
+
+.acao-card.mcard::before {content:none;}
