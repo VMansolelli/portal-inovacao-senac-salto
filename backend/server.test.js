@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {once} from 'node:events';
 import {createPortal} from './server.js';
-import {workshop} from './validation.js';
+import {workshop,salas} from './validation.js';
 
 test('API pública, login, autorização, inscrições e logout',async t=>{
   const user={id:'admin-id',email_confirmed_at:'2026-01-01'};
@@ -43,6 +43,15 @@ test('API pública, login, autorização, inscrições e logout',async t=>{
   assert.equal((await req('admin/moderar',{id:'abc',status:'aprovada'},headers)).status,200);
   assert.equal((await req('inscrever',{workshop:'abc',email:'x@example.org',nome:'Aluno'})).status,409);
   assert.equal((await req('oficina',{})).status,400);
+  const noticia={id:'abc',titulo:'Projeto',turma:'T1',curso:'TI',descricao:'Texto',categoria:'Outro'};
+  assert.equal((await req('admin/editar-noticia',noticia)).status,403);
+  assert.equal((await req('admin/editar-noticia',noticia,headers)).status,200);
+  assert.equal(calls.at(-1).op,'admin/editar-noticia');
+  assert.equal(calls.at(-1).p.imagem,undefined);
+  assert.equal((await req('admin/excluir-noticia',{id:'abc'})).status,403);
+  assert.equal((await req('admin/excluir-noticia',{id:'abc'},headers)).status,200);
+  assert.equal(calls.at(-1).op,'admin/excluir-noticia');
+  assert.deepEqual(await (await req('salas')).json(),[...salas]);
   const send=await req('ideia',{texto:'Teste',perfil:'Aluno',categoria:'Outro',status:'aprovada'});
   assert.equal(send.status,201);assert.equal(calls.at(-1).p.status,undefined);
   assert.match((await req('sair',{},headers)).headers.get('set-cookie'),/Max-Age=0/);
@@ -50,6 +59,13 @@ test('API pública, login, autorização, inscrições e logout',async t=>{
 test('Oficina exige vagas, e-mail e horário válido',()=>{
   const w={titulo:'Arte',docente:'Docente',email:'docente@example.org',area:'Arte',data:'2026-12-01',inicio:'10:00',termino:'11:00',local:'Biblioteca',vagas:4};
   assert.equal(workshop(w).vagas,4);
+  assert.equal(salas.size,19);
+  for(const [local,max] of salas){
+    assert.equal(workshop({...w,local,vagas:max}).vagas,max);
+    assert.throws(()=>workshop({...w,local,vagas:max+1}));
+  }
+  assert.throws(()=>workshop({...w,local:'Sala antiga'}));
+
   for(const change of [{vagas:0},{email:''},{termino:'09:00'},{data:'2026-02-31'}]){
     assert.throws(()=>workshop({...w,...change}));
   }

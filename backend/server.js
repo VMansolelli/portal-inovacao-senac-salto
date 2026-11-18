@@ -1,6 +1,6 @@
 import http from 'node:http';
 import {pathToFileURL} from 'node:url';
-import {fields,workshop,photo,insist} from './validation.js';
+import {fields,workshop,photo,insist,salas} from './validation.js';
 
 export function createPortal(config, remote = fetch) {
   const origin = new URL(config.FRONTEND_ORIGIN).origin;
@@ -59,6 +59,7 @@ export function createPortal(config, remote = fetch) {
       if(req.method==='POST')insist(!req.headers.origin || req.headers.origin===origin,'Origem inválida.',403);
       if(op.startsWith('admin/'))insist(await admin(token),'Entre com a conta administrativa.',403);
       if(req.method==='GET'){
+        if(op==='salas')return reply(200,[...salas]);
         if(['admin/lista','publico'].includes(op))return reply(200,await rpc(op));
         if(op.startsWith('admin/inscritos/'))return reply(200,await rpc('admin/inscritos',{id:op.slice(16)}));
         if(op.startsWith('foto/')){
@@ -108,13 +109,18 @@ export function createPortal(config, remote = fetch) {
         case 'oficina': data=workshop(b);break;
         case 'ideia': data=fields(b,['perfil','categoria','texto'],['nome']);break;
         case 'inscrever':data=fields(b,['nome','email','workshop'],['cargo','area']);break;
+        case 'admin/editar-noticia':
+          data=fields(b,['id','titulo','turma','curso','descricao','categoria'],['autor']);
+          if(b.imagem!==undefined)data.imagem=photo(b);
+          break;
+        case 'admin/excluir-noticia':data=fields(b,['id']);break;
         case 'admin/acao':data={...fields(b,['titulo','descricao']),imagem:photo(b)};break;
-        case 'admin/editar':data={...workshop(b),...fields(b,['id'])};break;
+        case 'admin/editar':data={...workshop(b,true),...fields(b,['id']),localLegado:!salas.has(b.local)};break;
         case 'admin/moderar':data=fields(b,['id','status']);insist(['aprovada','arquivada'].includes(data.status),'Decisão inválida.');break;
         case 'admin/apagar':data=fields(b,['id']);break;
         default: return reply(404,{erro:'Página não encontrada.'});
       }
-      return reply(['admin/editar','admin/moderar','admin/apagar'].includes(op)?200:201,await rpc(op,data));
+      return reply(['admin/editar','admin/moderar','admin/apagar','admin/editar-noticia','admin/excluir-noticia'].includes(op)?200:201,await rpc(op,data));
     }catch(e){
       const status=Number.isInteger(e.status)?e.status:503;
       reply(status,{erro:e.status?e.message:'Serviço temporariamente indisponível. Tente novamente.'});

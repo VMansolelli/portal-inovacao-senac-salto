@@ -1666,3 +1666,11 @@ footer button.navlink {
  .account-actions {gap:6px;}
  #restritoDialog .restrito-top {flex-wrap:wrap;}
 }
+
+.inline-editor {width:100%;max-width:720px;margin:18px 0 28px;padding:clamp(18px,3vw,32px);border:1px solid #d4dede;border-radius:16px;background:#fff;color:#213f54;text-align:left;}
+.inline-editor[hidden] {display:none;}
+.inline-heading {display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px;}
+.inline-editor .form-grid {margin-top:16px;}
+.inline-editor [role=alert] {color:#a02326;}
+.inline-editor [role=alert]:empty {display:none;}
+.management [data-do="excluir-noticia"] {background:white;color:#833c36;border-color:#dbc7c4;}

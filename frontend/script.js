@@ -45,7 +45,7 @@ function wireSubmit(form,callback) {
     if(submit.disabled)return;
     submit.disabled=true;
     try{await callback(Object.fromEntries(new FormData(form)),form);}
-    catch(e){if(dialog.open)$('#popupErro').textContent=e.message;else notify(e.message);}
+    catch(e){const inline=form.closest('.inline-editor');if(inline)$('[role=alert]',inline).textContent=e.message;else if(dialog.open)$('#popupErro').textContent=e.message;else notify(e.message);}
     finally{submit.disabled=false;}
   };
 }
@@ -65,22 +65,78 @@ async function jpeg(file) {
     return canvas.toDataURL('image/jpeg',0.70);
   }finally{URL.revokeObjectURL(url);}
 }
-function news(){
-  formPopup('Publicar uma notícia','Conte o que sua turma realizou. O comitê avalia a notícia antes de publicá-la no mural.',
-    field('titulo','Título da notícia')+'<div class="two-col">'+field('turma','Turma responsável')+field('curso','Curso')+'</div>'+field('autor','Nome de quem publica (opcional)','text',false)+field('descricao','O que foi realizado?','textarea')+
-    '<div><label for="categoriaNoticia">Categoria *</label><select required name="categoria" id="categoriaNoticia"><option value="">Selecione uma categoria</option>'+['Projeto de turma','Evento','Oficina','Inovação','Outro'].map(x=>'<option>'+x+'</option>').join('')+'</select></div>'+field('imagem','Foto da ação','file'),'Enviar para aprovação',async data=>{
-      data.imagem=await jpeg(data.imagem);await api('noticia',data);dialog.close();notify('Notícia enviada para aprovação.');
-    });
+function editor(title,html,button){
+  if(!button){
+    open(title,html);
+    return {form:$('form',dialog),close:()=>dialog.close()};
+  }
+  let region=document.getElementById(button.id+'-form');
+  if(region && !region.hidden){region.hidden=true;button.setAttribute('aria-expanded','false');return;}
+  if(region){
+    region.hidden=false;button.setAttribute('aria-expanded','true');return;
+  }
+  region=document.createElement('section');
+  region.id=button.id+'-form';region.className='inline-editor';
+  region.innerHTML=`<div class="inline-heading"><h3>${title}</h3><button type="button" class="choice">Fechar formulário</button></div>${html}<p role="alert"></p>`;
+  button.parentElement.after(region);
+  button.setAttribute('aria-controls',region.id);button.setAttribute('aria-expanded','true');
+  const form=$('form',region);
+  form.removeAttribute('id');
+  for(const input of form.querySelectorAll('[id]')){
+    const label=form.querySelector('label[for="'+input.id+'"]');
+    input.id='public-'+input.id;if(label)label.htmlFor=input.id;
+  }
+  const close=()=>{region.remove();button.setAttribute('aria-expanded','false');button.focus({preventScroll:true});};
+  $('.inline-heading button',region).onclick=()=>button.click();
+  return {form,close};
 }
-function workshop(row){
-  open(row?'Editar oficina':'Nova oficina',wkForm);
-  const form=$('form',dialog);
+function news(row){
+  const controls=field('titulo','Título da notícia')+'<div class="two-col">'+field('turma','Turma responsável')+field('curso','Curso')+'</div>'+field('autor','Nome de quem publica (opcional)','text',false)+field('descricao','O que foi realizado?','textarea')+
+    '<div><label for="categoriaNoticia">Categoria *</label><select required name="categoria" id="categoriaNoticia"><option value="">Selecione uma categoria</option>'+['Projeto de turma','Evento','Oficina','Inovação','Outro'].map(x=>'<option>'+x+'</option>').join('')+'</select></div>'+field('imagem',row?'Trocar foto (opcional)':'Foto da ação','file',!row);
+  const box=editor(row?'Editar notícia':'Publicar uma notícia',
+    (row?'':'<p>Conte o que sua turma realizou. O comitê avalia a notícia antes de publicá-la.</p>')+
+    '<form class="form-grid">'+controls+'<button type="submit" class="btn btn-orange">'+(row?'Salvar alterações':'Enviar para aprovação')+'</button></form>',row?null:$('#openNoticiaModal'));
+  if(!box)return;
+  if(row){
+    const category=box.form.elements.categoria;
+    if(![...category.options].some(o=>o.value===row.categoria))category.add(new Option(row.categoria,row.categoria));
+    for(const input of box.form.elements)if(input.name && input.type!=='file')input.value=row[input.name]||'';
+  }
+  wireSubmit(box.form,async data=>{
+    if(data.imagem?.size)data.imagem=await jpeg(data.imagem);else delete data.imagem;
+    await api(row?'admin/editar-noticia':'noticia',row?{...data,id:row.id}:data);
+    box.close();notify(row?'Notícia atualizada.':'Notícia enviada para aprovação.');
+    if(row)await refreshBoth();
+  });
+}
+let salasRequest;
+async function workshop(row){
+  const button=$('#openOficinaForm');
+  if(!row && button.disabled)return;
+  if(!row)button.disabled=true;
+  let salas;
+  try{
+    salasRequest??=api('salas');salas=new Map(await salasRequest);
+  }catch(e){salasRequest=null;notify('Não foi possível carregar as salas. Tente novamente.');return;}
+  finally{if(!row)button.disabled=false;}
+  const box=editor(row?'Editar oficina':'Nova oficina',wkForm,row?null:button);
+  if(!box)return;
+  const form=box.form, local=form.elements.local, vagas=form.elements.vagas;
+  local.replaceChildren(new Option('Selecione o local',''));
+  for(const [nome,capacidade] of salas)local.add(new Option(nome+' · '+capacidade+' pessoas',nome));
+  if(row && !salas.has(row.local))local.add(new Option(row.local+' (cadastro anterior)',row.local));
   for(const input of form.elements) if(input.name && row)input.value=row[input.name];
+  function capacity(prefill){
+    const max=salas.get(local.value);
+    vagas.max=max||10000;
+    if(prefill && max)vagas.value=max;
+  }
+  capacity(false);local.onchange=()=>capacity(true);
   $('[type=submit]',form).textContent=row?'Salvar alterações':'Enviar para aprovação';
   wireSubmit(form,async data=>{
     if(data.termino<=data.inicio)throw Error('O término deve ser depois do início.');
     await api(row?'admin/editar':'oficina',row?{...data,id:row.id}:data);
-    dialog.close();notify(row?'Oficina atualizada.':'Oficina enviada para aprovação.');
+    box.close();notify(row?'Oficina atualizada.':'Oficina enviada para aprovação.');
     if(row)await refreshBoth();
   });
 }
@@ -101,6 +157,7 @@ function adminCard(r){
   }else{
     content=`<p>${esc(r.descricao)}</p>`+(r.kind==='noticia'?[r.categoria,r.turma,r.curso,r.autor].filter(Boolean).map(esc).join(' · '):'');
   }
+  if(r.kind==='noticia')actions=btn('Editar notícia','editar-noticia',r.id)+btn('Excluir notícia','excluir-noticia',r.id);
   if(r.kind==='acao') actions=btn('Apagar ação','apagar',r.id);
   if(r.status==='pendente' && ['oficina','noticia'].includes(r.kind)) actions+=btn('Aprovar','aprovada',r.id)+btn('Rejeitar e arquivar','arquivada',r.id);
   return `<article class="admin-row">${r.foto?`<a class="admin-photo" href="${esc(r.foto)}" target="_blank" rel="noopener" aria-label="Abrir foto de ${esc(r.titulo)}">${picture(r)}</a>`:''}<div class="record-copy"><b>${esc(r.titulo||'Ideia recebida')}</b><div>${content}</div></div><div class="admin-actions">${actions}</div></article>`;
@@ -222,6 +279,11 @@ function message(w){
 async function action(button){
   const op=button.dataset.do,id=button.dataset.id;
   const w=(op==='inscrever'?publicRows:adminRows).find(r=>r.id===id);
+  if(op==='editar-noticia')return news(w);
+  if(op==='excluir-noticia'){
+    if(!confirm('Excluir definitivamente a notícia “'+w.titulo+'”?'))return;
+    await api('admin/excluir-noticia',{id});await refreshBoth();return;
+  }
   if(op==='editar')return workshop(w);
   if(op==='mensagem')return message(w);
   if(op==='nova')return formPopup('Adicionar ação local','A ação será publicada em O que Fazemos.',field('titulo','Título')+field('descricao','Texto','textarea')+field('imagem','Foto','file'),'Publicar ação',async d=>{
@@ -255,7 +317,7 @@ document.addEventListener('click',async e=>{
 $('#back').onclick=()=>admin.close();
 admin.onclose=()=>{$('#logout').hidden=true;adminRows=[];panel.replaceChildren();};
 $('#closePopup').onclick=()=>dialog.close();
-$('#openNoticiaModal').onclick=news;
+$('#openNoticiaModal').onclick=()=>news();
 $('#openOficinaForm').onclick=()=>workshop();
 $('#navRestrito').onclick=adminOpen;
 $('#burgerBtn').onclick=()=>$('#navLinks').classList.toggle('open');
