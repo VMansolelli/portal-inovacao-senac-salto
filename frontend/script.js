@@ -125,14 +125,45 @@ async function loadAdmin(){
   catch(e){
     adminRows=[];
     if(e.status!==403){panel.innerHTML='<p role="alert">'+esc(e.message)+'</p>';return;}
-    panel.innerHTML=`<form class="admin-gate form-grid"><h2>Acesso administrativo</h2>
-      <label>E-mail institucional<input type="email" name="email" autocomplete="username" required></label>
-      <label>Senha<input type="password" name="senha" autocomplete="current-password" required></label>
-      <button type="submit" class="btn btn-orange">Entrar</button><p role="alert"></p></form>`;
+    panel.innerHTML=`<div class="login-layout">
+      <div class="login-brand">
+        <span class="login-campus">Senac Salto</span>
+        <div class="login-wordmark">Portal de <br>Inovação<span>.</span></div>
+        <div class="login-art" aria-hidden="true"></div>
+      </div>
+      <form class="login-form" aria-labelledby="login-title">
+        <h2 id="login-title">Acesso administrativo</h2>
+        <p class="login-intro">Entre com sua conta institucional para gerenciar o portal.</p>
+        <label for="login-email">E-mail institucional</label>
+        <input id="login-email" type="email" name="email" autocomplete="username" placeholder="nome@sp.senac.br" required>
+        <label for="login-password">Senha</label>
+        <div class="login-password">
+          <input id="login-password" type="password" name="senha" autocomplete="current-password" required>
+          <button type="button" class="login-toggle" aria-controls="login-password" aria-label="Mostrar senha">Mostrar</button>
+        </div>
+        <p class="login-error" role="alert"></p>
+        <button type="submit" class="login-submit">Entrar no painel <span aria-hidden="true">→</span></button>
+      </form>
+    </div>`;
+    const art=$('.brand-mark').cloneNode(true);
+    art.removeAttribute('class');
+    $('.login-art',panel).append(art);
     const form=$('form',panel);
+    const toggle=$('.login-toggle',form);
+    toggle.onclick=()=>{
+      const input=form.elements.senha;
+      const show=input.type==='password';
+      input.type=show?'text':'password';
+      toggle.textContent=show?'Ocultar':'Mostrar';
+      toggle.setAttribute('aria-label',show?'Ocultar senha':'Mostrar senha');
+    };
     wireSubmit(form,async data=>{
+      const submit=$('[type=submit]',form);
+      const error=$('[role=alert]',form);
+      error.textContent='';
+      submit.textContent='Entrando…';
       try{await api('entrar',data);form.reset();await loadAdmin();}
-      catch(err){$('[role=alert]',form).textContent=err.message;}
+      catch(err){error.textContent=err.message;submit.innerHTML='Entrar no painel <span aria-hidden="true">→</span>';}
     });
   }
 }
