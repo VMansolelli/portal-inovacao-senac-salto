@@ -1,5 +1,5 @@
 {
   "rewrites": [
-    { "source": "/api/:path*", "destination": "https://SEU-SERVICO.onrender.com/api/:path*" }
+    { "source": "/api/:path*", "destination": "https://portal-inovacao-senac-salto-api.onrender.com/api/:path*" }
   ]
 }
