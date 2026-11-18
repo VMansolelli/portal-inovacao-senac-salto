@@ -1626,3 +1626,43 @@ footer button.navlink {
   .login-art svg { width:100%; height:120%; right:-7%; bottom:-23%; }
   .login-form { padding:26px 24px 30px; }
 }
+
+/* Painel de administração */
+#restritoDialog .restrito-page {background:#f4f5f2;color:#1b3549;}
+#restritoDialog .restrito-top {background:#fff;color:#173e5a;border-bottom:1px solid #dce1df;padding:14px clamp(16px,5vw,80px);gap:12px;}
+.account-actions {display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+#restritoDialog .back,#logout {font:inherit;font-size:14px;font-weight:650;min-height:40px;border-radius:8px;cursor:pointer;}
+#restritoDialog .back {background:#f0f4f5;color:#23475c;border:1px solid #c8d4d7;}
+#logout {background:white;color:#5b3736;padding:8px 13px;border:1px solid #d7c6c4;}
+#logout:hover {background:#fbf1ee;}
+.restrito-body:has(.management) {width:100%;max-width:1280px;padding:clamp(24px,4vw,56px) clamp(16px,4vw,48px);}
+.management {display:grid;grid-template-columns:180px minmax(0,1fr);gap:clamp(18px,4vw,56px);align-items:start;}
+.management .admin-tabs {display:grid;gap:4px;margin:0;padding:8px;background:white;border:1px solid #d8dfdf;border-radius:12px;}
+.management .admin-tab {text-align:left;color:#385162;background:transparent;border:0;border-radius:7px;min-height:44px;font-size:14px;}
+.management .admin-tab:hover {background:#f1f5f5;}
+.management .admin-tab.active {background:#173e56;color:white;box-shadow:inset 3px 0 #ff9e39;}
+.management-main {min-width:0;overflow-wrap:anywhere;}
+.management-main h2 {color:#14384e;letter-spacing:-.035em;font-size:clamp(28px,3vw,40px);margin:0 0 22px;}
+.management-main .admin-heading {margin:25px 0 10px;color:#244555;font-size:17px;display:flex;gap:8px;align-items:center;}
+.admin-heading span {background:#e4ebeb;color:#365563;border-radius:8px;padding:2px 8px;font-size:13px;}
+.management-main > p {color:#536777;font-size:14px;}
+.management .admin-row {background:white;border:1px solid #d4dede;border-radius:12px;gap:16px;padding:18px 20px;color:#465e6b;font-size:14px;line-height:1.5;}
+.management .admin-row b {color:#16374a;font-size:17px;}
+.management .admin-row p {color:#425b69;}
+.record-copy {flex:1 1 200px;min-width:0;}
+.management .admin-photo {display:block;flex:0 0 94px;}
+.management .admin-photo img {display:block;height:78px;border-radius:8px!important;}
+.management .btn {box-shadow:none;background:#edf2f4;color:#254456;border:1px solid #cbd7da;}
+.management [data-do="aprovada"],.management [data-do="nova"] {background:#174961;color:white;border-color:#174961;}
+.management [data-do="arquivada"],.management [data-do="apagar"] {background:white;color:#833c36;border-color:#dbc7c4;}
+.management :focus-visible,.reset-link:focus-visible,#logout:focus-visible {outline:3px solid #1476af;outline-offset:2px;}
+.reset-link {display:block;background:none;border:0;color:#185271;font:inherit;font-size:14px;font-weight:650;text-decoration:underline;text-underline-offset:3px;padding:8px 0;margin:6px 0 0;cursor:pointer;}
+@media(max-width:760px){
+ .management {display:block;}
+ .management .admin-tabs {display:flex;flex-wrap:wrap;margin-bottom:24px;}
+ .management .admin-tab {flex:1 0 auto;text-align:center;padding:8px 12px;}
+ .management .admin-row {padding:16px;gap:12px;}
+ .management .admin-actions {flex-wrap:wrap;}
+ .account-actions {gap:6px;}
+ #restritoDialog .restrito-top {flex-wrap:wrap;}
+}

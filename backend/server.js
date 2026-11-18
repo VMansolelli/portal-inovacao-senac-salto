@@ -5,8 +5,9 @@ import {fields,workshop,photo,insist} from './validation.js';
 export function createPortal(config, remote = fetch) {
   const origin = new URL(config.FRONTEND_ORIGIN).origin;
   const base = new URL(config.SUPABASE_URL);
-  const adminId = config.ADMIN_USER_ID;
-  if (!adminId || !config.SUPABASE_SECRET_KEY || !config.SUPABASE_PUBLISHABLE_KEY || base.protocol!=='https:') {
+  const adminIds = new Set([config.ADMIN_USER_ID, config.ADMIN_USER_IDS].filter(Boolean).join(',').split(',').map(id=>id.trim()).filter(Boolean));
+  const authorized = user => !!user?.email_confirmed_at && adminIds.has(user.id);
+  if (!adminIds.size || !config.SUPABASE_SECRET_KEY || !config.SUPABASE_PUBLISHABLE_KEY || base.protocol!=='https:') {
     throw Error('Configure as variáveis do Supabase e o identificador do administrador.');
   }
   const secure = origin.startsWith('https://');
@@ -32,7 +33,7 @@ export function createPortal(config, remote = fetch) {
     if(r.status>=500)throw Object.assign(new Error('Serviço de login indisponível.'),{status:503});
     if(!r.ok)return false;
     const u=await r.json();
-    return u.id===adminId && !!u.email_confirmed_at;
+    return authorized(u);
   }
   async function read(req) {
     insist(req.headers['content-type']?.split(';')[0]==='application/json','Envie dados em JSON.',415);
@@ -69,6 +70,29 @@ export function createPortal(config, remote = fetch) {
       const b=await read(req);
       let data;
       switch(op){
+        case 'recuperar': {
+          const {email}=fields(b,['email']);
+          const r=await auth('recover',{method:'POST',body:JSON.stringify({email})});
+          insist(r.status!==429,'Aguarde antes de solicitar outro código.',429);
+          insist(r.status<500,'Não foi possível enviar o e-mail de recuperação.',503);
+          return reply(200,{ok:true});
+        }
+        case 'redefinir': {
+          const {email,codigo}=fields(b,['email','codigo']);
+          insist(/^\d{6,10}$/.test(codigo),'Confira o código recebido por e-mail.');
+          insist(typeof b.senha==='string' && b.senha.length>=8 && b.senha.length<=1024,'Use uma senha com pelo menos 8 caracteres.');
+          const verify=await auth('verify',{method:'POST',body:JSON.stringify({email,token:codigo,type:'recovery'})});
+          insist(verify.status!==429,'Muitas tentativas. Aguarde antes de continuar.',429);
+          insist(verify.status<500,'Serviço de recuperação indisponível.',503);
+          insist(verify.ok,'Código inválido ou expirado. Confira o código ou solicite outro.',400);
+          const session=await verify.json();
+          insist(authorized(session.user) && session.access_token,'Esta conta não tem acesso ao painel.',403);
+          const headers={Authorization:'Bearer '+session.access_token};
+          const change=await auth('user',{method:'PUT',headers,body:JSON.stringify({password:b.senha})});
+          insist(change.ok,'A senha não foi alterada. Solicite outro código e escolha uma nova senha conforme as regras da instituição.',400);
+          res.setHeader('Set-Cookie',sessionCookie('',0));
+          return reply(200,{ok:true});
+        }
         case 'entrar': {
           const {email}=fields(b,['email']);
           insist(typeof b.senha==='string' && b.senha.length>0 && b.senha.length<=1024,'Informe a senha.');
@@ -77,7 +101,7 @@ export function createPortal(config, remote = fetch) {
           insist(r.status<500,'Serviço de login indisponível.',503);
           insist(r.ok,'E-mail ou senha inválidos.',403);
           const s=await r.json();
-          insist(s.user?.id===adminId && s.user.email_confirmed_at && s.access_token,'Conta sem acesso administrativo.',403);
+          insist(authorized(s.user) && s.access_token,'Conta sem acesso administrativo.',403);
           res.setHeader('Set-Cookie',sessionCookie(s.access_token,Math.max(1,Math.floor(s.expires_in))));
           return reply(200,{ok:true});
         }

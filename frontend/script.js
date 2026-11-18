@@ -15,7 +15,7 @@ async function api(path,body) {
   return result;
 }
 document.body.insertAdjacentHTML('beforeend',`<div class="toast" id="feedback" role="status"></div>
-<dialog id="restritoDialog" aria-label="Área restrita"><div class="restrito-page"><div class="restrito-top"><strong>Área restrita</strong><button class="back" id="back">Voltar ao portal</button></div><div class="restrito-body" id="painel"></div></div></dialog>
+<dialog id="restritoDialog" aria-label="Área restrita"><div class="restrito-page"><div class="restrito-top"><strong>Área restrita</strong><div class="account-actions"><button class="back" id="back">Voltar ao portal</button><button type="button" id="logout" hidden>Sair da conta</button></div></div><div class="restrito-body" id="painel"></div></div></dialog>
 <dialog class="modal" id="popup" aria-labelledby="popupTitle" style="margin:auto;border:0"><button class="modal-close" aria-label="Fechar" id="closePopup">×</button><h3 class="modal-title" id="popupTitle"></h3><div id="popupBody"></div><p role="alert" id="popupErro"></p></dialog>`);
 const dialog=$('#popup'), admin=$('#restritoDialog'), panel=$('#painel');
 const originalWorkshop=$('#formOficina');
@@ -99,13 +99,14 @@ function adminCard(r){
   }else if(r.kind==='ideia'){
     content=`${esc(r.nome||'Anônimo')} · ${esc(r.perfil)} · ${esc(r.categoria)}<p>${esc(r.texto)}</p>`;
   }else{
-    content=picture(r)+`<p>${esc(r.descricao)}</p>`+(r.kind==='noticia'?[r.categoria,r.turma,r.curso,r.autor].filter(Boolean).map(esc).join(' · '):'');
+    content=`<p>${esc(r.descricao)}</p>`+(r.kind==='noticia'?[r.categoria,r.turma,r.curso,r.autor].filter(Boolean).map(esc).join(' · '):'');
   }
   if(r.kind==='acao') actions=btn('Apagar ação','apagar',r.id);
   if(r.status==='pendente' && ['oficina','noticia'].includes(r.kind)) actions+=btn('Aprovar','aprovada',r.id)+btn('Rejeitar e arquivar','arquivada',r.id);
-  return `<article class="admin-row"><div><b>${esc(r.titulo||'Ideia recebida')}</b><div>${content}</div></div><div class="admin-actions">${actions}</div></article>`;
+  return `<article class="admin-row">${r.foto?`<a class="admin-photo" href="${esc(r.foto)}" target="_blank" rel="noopener" aria-label="Abrir foto de ${esc(r.titulo)}">${picture(r)}</a>`:''}<div class="record-copy"><b>${esc(r.titulo||'Ideia recebida')}</b><div>${content}</div></div><div class="admin-actions">${actions}</div></article>`;
 }
 function renderAdmin(){
+  $('#logout').hidden=false;
   let records=adminRows.filter(r=>r.kind===tab);
   let content='';
   if(['email','inscritos'].includes(tab)){
@@ -114,16 +115,17 @@ function renderAdmin(){
   }else if(['noticia','oficina'].includes(tab)){
     for(const [status,title] of [['pendente','Aguardando aprovação'],['aprovada','Publicadas'],['arquivada','Arquivadas']]){
       const group=records.filter(r=>r.status===status);
-      content+=`<h3 class="admin-heading">${title} (${group.length})</h3>`+(group.map(adminCard).join('')||'<p>Nenhum registro.</p>');
+      content+=`<h3 class="admin-heading">${title} <span>${group.length}</span></h3>`+(group.map(adminCard).join('')||'<p>Nenhum registro.</p>');
     }
   }else content=records.map(adminCard).join('');
-  panel.innerHTML=`<nav class="admin-tabs" aria-label="Seções do painel"><button type="button" class="admin-tab" id="logout">Sair da conta</button>${Object.entries(tabs).map(([k,v])=>`<button type="button" class="admin-tab ${tab===k?'active':''}" data-tab="${k}">${v}</button>`).join('')}</nav><h2>${tabs[tab]}</h2>${tab==='acao'?btn('Adicionar ação local','nova'):''}${content||'<p>Nenhum registro recebido.</p>'}`;
+  panel.innerHTML=`<div class="management"><nav class="admin-tabs" aria-label="Seções do painel">${Object.entries(tabs).map(([k,v])=>`<button type="button" class="admin-tab ${tab===k?'active':''}" aria-current="${tab===k?'page':'false'}" data-tab="${k}">${v}</button>`).join('')}</nav><section class="management-main"><h2>${tabs[tab]}</h2>${tab==='acao'?btn('Adicionar ação local','nova'):''}${content||'<p>Nenhum registro recebido.</p>'}</section></div>`;
 }
 async function refreshBoth(){await Promise.all([refreshPublic(),loadAdmin()]);}
 async function loadAdmin(){
   try{adminRows=await api('admin/lista');renderAdmin();}
   catch(e){
     adminRows=[];
+    $('#logout').hidden=true;
     if(e.status!==403){panel.innerHTML='<p role="alert">'+esc(e.message)+'</p>';return;}
     panel.innerHTML=`<div class="login-layout">
       <div class="login-brand">
@@ -143,12 +145,14 @@ async function loadAdmin(){
         </div>
         <p class="login-error" role="alert"></p>
         <button type="submit" class="login-submit">Entrar no painel <span aria-hidden="true">→</span></button>
+        <button type="button" class="reset-link" id="forgot">Esqueci minha senha</button>
       </form>
     </div>`;
     const art=$('.brand-mark').cloneNode(true);
     art.removeAttribute('class');
     $('.login-art',panel).append(art);
     const form=$('form',panel);
+    $('#forgot').onclick=()=>recoveryForm(form.elements.email.value);
     const toggle=$('.login-toggle',form);
     toggle.onclick=()=>{
       const input=form.elements.senha;
@@ -166,6 +170,40 @@ async function loadAdmin(){
       catch(err){error.textContent=err.message;submit.innerHTML='Entrar no painel <span aria-hidden="true">→</span>';}
     });
   }
+}
+function recoveryForm(email, confirmCode=false){
+  const form=$('.login-form',panel);
+  form.innerHTML=`<h2 id="login-title">${confirmCode?'Cadastre uma nova senha':'Recuperar senha'}</h2>
+    <p class="login-intro">${confirmCode?'Se a conta existir, você receberá um código por e-mail.':'Informe o e-mail institucional usado no painel.'}</p>
+    <label for="recover-email">E-mail institucional</label>
+    <input id="recover-email" type="email" name="email" autocomplete="username" required>
+    ${confirmCode?`<label for="recover-code">Código recebido</label><input id="recover-code" name="codigo" type="text" inputmode="numeric" pattern="[0-9]{6,10}" autocomplete="one-time-code" required>
+    <label for="recover-password">Nova senha</label><input id="recover-password" type="password" name="senha" autocomplete="new-password" minlength="8" placeholder="Pelo menos 8 caracteres" required>
+    <label for="recover-confirm">Confirme a nova senha</label><input id="recover-confirm" name="confirmacao" type="password" autocomplete="new-password" required>`:''}
+    <p role="alert" class="login-error"></p>
+    <button type="submit" class="login-submit">${confirmCode?'Salvar nova senha':'Enviar código'}</button>
+    ${confirmCode?'<button type="button" class="reset-link" id="again">Solicitar outro código</button>':''}
+    <button type="button" class="reset-link" id="to-login">Voltar ao login</button>`;
+  form.elements.email.value=email;
+  if(confirmCode){form.elements.email.readOnly=true;form.elements.codigo.focus();$('#again').onclick=()=>recoveryForm(email);}
+  else form.elements.email.focus();
+  $('#to-login').onclick=loadAdmin;
+  wireSubmit(form,async data=>{
+    const feedback=$('[role=alert]',form);
+    try{
+      feedback.textContent='';
+      if(confirmCode){
+        if(data.senha!==data.confirmacao)throw Error('As duas senhas precisam ser iguais.');
+        await api('redefinir',{email:data.email,codigo:data.codigo,senha:data.senha});
+        await loadAdmin();
+        const intro=$('.login-intro',panel);
+        if(intro)intro.textContent='Senha alterada. Entre com sua nova senha.';
+      }else{
+        await api('recuperar',{email:data.email});
+        recoveryForm(data.email,true);
+      }
+    }catch(err){feedback.textContent=err.message;}
+  });
 }
 async function adminOpen(){if(!admin.open)admin.showModal();panel.textContent='Carregando painel…';await loadAdmin();}
 function message(w){
@@ -210,7 +248,7 @@ document.addEventListener('click',async e=>{
   try{await action(b);}catch(err){if(admin.open)alert(err.message);else notify(err.message);}finally{b.disabled=false;}
 });
 $('#back').onclick=()=>admin.close();
-admin.onclose=()=>{adminRows=[];panel.replaceChildren();};
+admin.onclose=()=>{$('#logout').hidden=true;adminRows=[];panel.replaceChildren();};
 $('#closePopup').onclick=()=>dialog.close();
 $('#openNoticiaModal').onclick=news;
 $('#openOficinaForm').onclick=()=>workshop();
