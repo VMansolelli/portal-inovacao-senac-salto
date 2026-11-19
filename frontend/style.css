@@ -346,7 +346,6 @@ nav.links a:hover,nav.links button.navlink:hover {
   header .burger:focus-visible,nav.links :focus-visible {outline:2px solid var(--blue);outline-offset:1px;}
   .decor,.crane-stage,.login-art {display:none;}
   .hero .hero-grid {grid-template-columns:minmax(0,1fr);gap:0;}
-  .mcard::before {display:none;}
 }
 
 /* ---------- hero ---------- */
@@ -648,18 +647,6 @@ section {
   transform:translateY(-3px);
 }
 
-/* Desenha um ponto laranja no canto superior direito sem exigir outro elemento no HTML. */
-.mcard::before {
-  content:"";
-  position:absolute;
-  top:14px;
-  right:14px;
-  width:9px;
-  height:9px;
-  border-radius:50%;
-  background:var(--orange);
-}
-
 /* quem somos */
 /* Divide a seção Quem Somos em duas colunas, com a primeira ligeiramente maior. */
 .quem-grid {
@@ -668,6 +655,30 @@ section {
   gap:20px;
   position:relative;
   z-index:1;
+}
+
+.quem-botoes {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  margin-top: 20px;
+}
+
+.quem-iniciativas {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  color: var(--blue);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.quem-iniciativas:hover,
+.quem-iniciativas:focus-visible {
+  text-decoration: underline;
+  text-underline-offset: 4px;
 }
 
 /* Adapta a seção Quem Somos para telas de até 880px. */
@@ -1654,5 +1665,3 @@ footer button.navlink {
 .inline-editor [role=alert] {color:#a02326;}
 .inline-editor [role=alert]:empty {display:none;}
 .management [data-do="excluir-noticia"] {background:white;color:#833c36;border-color:#dbc7c4;}
-
-.acao-card.mcard::before {content:none;}
