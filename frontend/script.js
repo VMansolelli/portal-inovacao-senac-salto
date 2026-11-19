@@ -6,7 +6,12 @@ const date = v=>v.split('-').reverse().join('/');
 const empty = text=>'<p class="empty-state empty-state-full">'+text+'</p>';
 const btn = (label,action,id='')=>`<button type="button" class="btn btn-orange btn-sm" data-do="${action}" data-id="${esc(id)}">${label}</button>`;
 const field = (key,label,type='text',required=true)=>`<div><label for="f-${key}">${label}${required?' *':''}</label>${type==='textarea'?`<textarea id="f-${key}" name="${key}" maxlength="5000" required></textarea>`:`<input id="f-${key}" name="${key}" type="${type}" ${type==='file'?'accept="image/jpeg,image/png,image/gif,image/webp"':'maxlength="254"'} ${required?'required':''}>`}</div>`;
-const picture = row => row.foto?`<img src="${esc(row.foto)}" alt="" loading="lazy" style="width:100%;max-height:240px;object-fit:cover;border-radius:12px">`:'';
+const photoVersions=new Map();
+function photoURL(row){
+  const version=photoVersions.get(row.id);
+  return version && row.foto ? row.foto+'?v='+version : row.foto;
+}
+const picture = row => row.foto?`<img src="${esc(photoURL(row))}" alt="" loading="lazy" style="width:100%;max-height:240px;object-fit:cover;border-radius:12px">`:'';
 const workshopDetails = w=>`${esc(w.docente)} · ${esc(w.area)}<br>${date(w.data)} · ${esc(w.inicio)}–${esc(w.termino)} · ${esc(w.local)}<br>${w.vagas-w.inscritos} de ${w.vagas} vagas disponíveis`;
 async function api(path,body) {
   const response=await fetch('/api/'+path, body?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}:{cache:'no-store'});
@@ -162,7 +167,7 @@ function adminCard(r){
   if(r.kind==='noticia' && r.status==='aprovada')actions+=btn('Arquivar notícia','arquivar-noticia',r.id);
   if(r.kind==='acao') actions=btn('Editar ação','editar-acao',r.id)+btn('Apagar ação','apagar',r.id);
   if(r.status==='pendente' && ['oficina','noticia'].includes(r.kind)) actions+=btn('Aprovar','aprovada',r.id)+btn('Rejeitar e arquivar','arquivada',r.id);
-  return `<article class="admin-row">${r.foto?`<a class="admin-photo" href="${esc(r.foto)}" target="_blank" rel="noopener" aria-label="Abrir foto de ${esc(r.titulo)}">${picture(r)}</a>`:''}<div class="record-copy"><b>${esc(r.titulo||'Ideia recebida')}</b><div>${content}</div></div><div class="admin-actions">${actions}</div></article>`;
+  return `<article class="admin-row">${r.foto?`<a class="admin-photo" href="${esc(photoURL(r))}" target="_blank" rel="noopener" aria-label="Abrir foto de ${esc(r.titulo)}">${picture(r)}</a>`:''}<div class="record-copy"><b>${esc(r.titulo||'Ideia recebida')}</b><div>${content}</div></div><div class="admin-actions">${actions}</div></article>`;
 }
 function renderAdmin(){
   $('#reserve').hidden=false;$('#logout').hidden=false;
@@ -322,11 +327,49 @@ async function action(button){
     await loadAdmin();return;
   }
   if(op==='editar-acao'){
-    formPopup('Editar ação','Escolha uma nova foto apenas se desejar trocá-la.',field('titulo','Título')+field('descricao','Texto','textarea')+field('imagem','Nova foto','file',false),'Salvar alterações',async d=>{
-      if(d.imagem?.size)d.imagem=await jpeg(d.imagem);else delete d.imagem;
-      await api('admin/editar-acao',{...d,id});dialog.close();await refreshBoth();
-    });
-    const f=$('form',dialog);f.elements.titulo.value=w.titulo;f.elements.descricao.value=w.descricao;return;
+    const preview='<figure style="margin:0"><img alt="Foto da ação" style="width:100%;max-height:190px;object-fit:contain" hidden><figcaption></figcaption></figure>';
+    formPopup('Editar ação','Selecione uma imagem para conferir a prévia e depois salve as alterações.',
+      field('titulo','Título')+field('descricao','Texto','textarea')+preview+field('imagem','Nova foto','file',false),
+      'Salvar alterações',async (data,form)=>{
+        const file=form.elements.imagem.files[0];
+        const payload={id,titulo:data.titulo,descricao:data.descricao};
+        if(file)payload.imagem=await jpeg(file);
+        await api('admin/editar-acao',payload);
+        let message='Ação atualizada.';
+        if(file){
+          photoVersions.set(id,Date.now());
+          try{
+            const url=photoURL({id,foto:'/api/foto/'+encodeURIComponent(id)});
+            const saved=await fetch(url,{cache:'no-store'});
+            if(!saved.ok)throw Error();
+            const bytes=new Uint8Array(await saved.arrayBuffer());
+            const expected=atob(payload.imagem.split(',')[1]);
+            message=bytes.length===expected.length && bytes.every((v,i)=>v===expected.charCodeAt(i))
+              ? 'Foto atualizada e conferida.'
+              : 'A imagem retornada pelo servidor é diferente da foto enviada.';
+          }catch{message='Alterações enviadas. Não foi possível conferir a foto no servidor.';}
+        }
+        dialog.close();await refreshBoth();
+        if(admin.open){
+          const feedback=document.createElement('p');feedback.setAttribute('role','status');
+          feedback.textContent=message;$('.management-main',panel)?.prepend(feedback);
+        }else notify(message);
+      });
+    const f=$('form',dialog);f.elements.titulo.value=w.titulo;f.elements.descricao.value=w.descricao;
+    const image=$('figure img',f),caption=$('figcaption',f);
+    let objectURL='';
+    function displayPhoto(){
+      if(objectURL)URL.revokeObjectURL(objectURL);
+      const file=f.elements.imagem.files[0];
+      objectURL=file?URL.createObjectURL(file):'';
+      const src=objectURL || photoURL(w);
+      if(src)image.src=src;else image.removeAttribute('src');
+      image.hidden=!src;
+      caption.textContent=file?'Nova foto selecionada: '+file.name:(src?'Foto atual':'Ação sem foto.');
+    }
+    displayPhoto();f.elements.imagem.addEventListener('change',displayPhoto);
+    dialog.addEventListener('close',()=>{if(objectURL)URL.revokeObjectURL(objectURL);},{once:true});
+    return;
   }
   const confirmations={'excluir-oficina':'Excluir a oficina e todas as inscrições vinculadas?', 'apagar-ideia':'Apagar definitivamente esta ideia?', 'arquivar-ideia':'Mover a ideia para Arquivadas?', 'arquivar-noticia':'Retirar a notícia do mural e arquivar?'};
   if(Object.hasOwn(confirmations,op)){
