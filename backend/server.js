@@ -98,6 +98,11 @@ export function createPortal(config, remote = fetch) {
         if(action.startsWith('master/'))insist(staff.id===masterId,'Exclusivo de Victor.',403);
       }
       if(req.method==='GET'){
+        if(['totem','admin/totem'].includes(op)){
+          const info=await rpc(op==='totem'?'tela':'editor',{},'totem_api');
+          for(const a of info.avisos)if(a.arquivo)a.video=new URL('/storage/v1/object/public/totem-videos/'+encodeURIComponent(a.arquivo),base).href;
+          return reply(200,info);
+        }
         if(op==='mapa/perfil')return reply(200,{master:staff.id===masterId,hoje:today()});
         if(mapRequest && ['catalogo','recessos','master/lista'].includes(action))return reply(200,await mapRpc(action,{}));
         if(op==='versao')return reply(200,{versao:'painel-3',recuperacao:'link e chave de reserva',mapa:'mapa-1',salas:(await mapRpc('salas',{})).length});
@@ -114,6 +119,34 @@ export function createPortal(config, remote = fetch) {
       }
       insist(req.method==='POST','Página não encontrada.',404);
       const b=await read(req);
+      if(op==='totem/inscrever')return reply(201,await rpc('inscrever',fields(b,['nome','email','workshop'],['cargo','area']),'totem_api'));
+      if(op.startsWith('admin/totem/')){
+        const acao=op.slice('admin/totem/'.length);
+        if(acao==='upload'){
+          const ext={'video/mp4':'mp4','video/webm':'webm'}[b.mime];
+          insist(typeof ext==='string' && Number.isInteger(b.bytes)&&b.bytes>0&&b.bytes<=50331648,'Use MP4 ou WebM de até 48 MB.');
+          const arquivo=randomBytes(16).toString('hex')+'.'+ext;
+          const path='/object/upload/sign/totem-videos/'+arquivo;
+          const response=await remote(new URL('/storage/v1'+path,base),{method:'POST',headers:{apikey:config.SUPABASE_SECRET_KEY,Authorization:'Bearer '+config.SUPABASE_SECRET_KEY,'Content-Type':'application/json'},body:'{}'});
+          insist(response.ok,'Falha ao preparar o envio do vídeo.',503);
+          const {url}=await response.json();
+          const signed=new URL(url,base);
+          insist(signed.searchParams.has('token'),'Falha ao autorizar envio.',503);
+          return reply(200,{arquivo,url:new URL('/storage/v1'+path+signed.search,base).href});
+        }
+        let d;
+        if(acao==='aviso'){
+          d=fields(b,['tipo','titulo','inicio','fim'],['id','descricao','arquivo']);
+          insist(['Curso','Ação','Vídeo'].includes(d.tipo)&&day(d.inicio)<=day(d.fim),'Confira tipo e período.');
+          d.legenda=d.tipo==='Vídeo'?String(b.legenda||''):'';
+          insist(!d.legenda||(d.legenda.length<=60000&&d.legenda.startsWith('WEBVTT')),'Use legenda WebVTT de até 60 mil caracteres.');
+          if(d.tipo==='Vídeo')insist(/^[a-f0-9]{32}[.](mp4|webm)$/.test(d.arquivo),'Anexe o vídeo.');else d.arquivo=null;
+        }else if(acao==='visibilidade'){d=fields(b,['id']);insist(typeof b.oculto==='boolean','Visibilidade inválida.');d.oculto=b.oculto;}
+        else if(acao==='excluir')d=fields(b,['id']);
+        else if(acao==='horarios')d=fields(b,['secretaria','biblioteca']);
+        else insist(false,'Página não encontrada.',404);
+        return reply(200,await rpc(acao,d,'totem_api'));
+      }
       let data;
       if(mapRequest && ['dia','pin-dia','retirar','devolver','criar','alterar','cancelar','cadastro','desativar','reativar','pin','recesso','remover-recesso','historico','corrigir'].includes(action)){
         let payload=prepareMap(action,b);let generated;

@@ -192,7 +192,7 @@ function renderAdmin(){
       content+=`<h3 class="admin-heading">${title} <span>${group.length}</span></h3>`+(group.map(adminCard).join('')||'<p>Nenhum registro.</p>');
     }
   }else content=records.map(adminCard).join('');
-  panel.innerHTML=`<div class="management"><nav class="admin-tabs" aria-label="Seções do painel">${Object.entries(sections).map(([k,v])=>`<button type="button" class="admin-tab ${tab===k?'active':''}" aria-current="${tab===k?'page':'false'}" data-tab="${k}">${v}</button>`).join('')}</nav><section class="management-main"><h2>${sections[tab]}</h2>${tab==='acao'?btn('Adicionar ação local','nova'):''}${content||'<p>Nenhum registro recebido.</p>'}</section></div>`;
+  panel.innerHTML=`<div class="management"><nav class="admin-tabs" aria-label="Seções do painel"><a class="admin-tab" href="/totem-editor.html">Totem</a>${Object.entries(sections).map(([k,v])=>`<button type="button" class="admin-tab ${tab===k?'active':''}" aria-current="${tab===k?'page':'false'}" data-tab="${k}">${v}</button>`).join('')}</nav><section class="management-main"><h2>${sections[tab]}</h2>${tab==='acao'?btn('Adicionar ação local','nova'):''}${content||'<p>Nenhum registro recebido.</p>'}</section></div>`;
 }
 async function refreshBoth(){await Promise.all([refreshPublic(),loadAdmin()]);}
 async function loadAdmin(){
