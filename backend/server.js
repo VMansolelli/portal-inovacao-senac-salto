@@ -105,6 +105,7 @@ export function createPortal(config, remote = fetch) {
         }
         if(op==='mapa/perfil')return reply(200,{master:staff.id===masterId,hoje:today()});
         if(mapRequest && ['catalogo','recessos','master/lista'].includes(action))return reply(200,await mapRpc(action,{}));
+        if(op==='totem/versao')return reply(200,{versao:'midias-2',reelPorLink:true});
         if(op==='versao')return reply(200,{versao:'painel-3',recuperacao:'link e chave de reserva',mapa:'mapa-1',salas:(await mapRpc('salas',{})).length});
         if(op==='admin/perfil')return reply(200,{master:staff.id===masterId});
         if(op==='master/lista')return reply(200,await rpc(op));
@@ -146,7 +147,8 @@ export function createPortal(config, remote = fetch) {
         let d;
         if(acao==='aviso'){
           d=fields(b,['tipo','titulo','inicio','fim'],['id','descricao','arquivo']);
-          insist(['Curso','Ação','Vídeo','Reel'].includes(d.tipo)&&day(d.inicio)<=day(d.fim),'Confira tipo e período.');
+          insist(['Curso','Ação','Vídeo','Reel'].includes(d.tipo),'Selecione um tipo de divulgação válido.');
+          insist(day(d.inicio)<=day(d.fim),'A data final deve ser igual ou posterior à data inicial.');
           d.imagem_curso=d.tipo==='Curso'?linkOpcional('imagem_curso'):'';
           d.instagram_reel=d.tipo==='Reel'?linkOpcional('instagram_reel'):'';
           if(d.instagram_reel){
