@@ -96,10 +96,10 @@ function editor(title,html,button){
   return {form,close};
 }
 function news(row){
-  const controls=field('titulo','Título da notícia')+'<div class="two-col">'+field('turma','Turma responsável')+field('curso','Curso')+'</div>'+field('autor','Nome de quem publica (opcional)','text',false)+field('descricao','O que foi realizado?','textarea')+
-    '<div><label for="categoriaNoticia">Categoria *</label><select required name="categoria" id="categoriaNoticia"><option value="">Selecione uma categoria</option>'+['Projeto de turma','Evento','Oficina','Inovação','Outro'].map(x=>'<option>'+x+'</option>').join('')+'</select></div>'+field('imagem',row?'Trocar foto (opcional)':'Foto da ação','file',!row);
+  const controls=field('titulo','Título da notícia')+'<div class="two-col">'+field('turma','Turma (opcional)','text',false)+field('curso','Curso (opcional)','text',false)+'</div>'+field('autor','Nome de quem publica (opcional)','text',false)+field('descricao','Descrição da notícia','textarea')+
+    '<div><label for="categoriaNoticia">Categoria *</label><select required name="categoria" id="categoriaNoticia"><option value="">Selecione uma categoria</option>'+['Projeto de turma','Evento','Oficina','Inovação','Outro'].map(x=>'<option>'+x+'</option>').join('')+'</select></div>'+field('imagem',row?'Trocar foto (opcional)':'Foto da notícia','file',!row);
   const box=editor(row?'Editar notícia':'Publicar uma notícia',
-    (row?'':'<p>Conte o que sua turma realizou. O comitê avalia a notícia antes de publicá-la.</p>')+
+    (row?'':'<p>Compartilhe uma notícia do Senac Salto, como uma conquista, uma exposição ou um convite à comunidade. O comitê avalia a notícia antes de publicá-la.</p>')+
     '<form class="form-grid">'+controls+'<button type="submit" class="btn btn-orange">'+(row?'Salvar alterações':'Enviar para aprovação')+'</button></form>',row?null:$('#openNoticiaModal'));
   if(!box)return;
   if(row){
@@ -148,7 +148,7 @@ async function workshop(row){
 async function refreshPublic(){
   publicRows=await api('publico');
   const cards=(kind,render,none)=>publicRows.filter(r=>r.kind===kind).map(render).join('')||empty(none);
-  $('#muralGrid').innerHTML=cards('noticia',r=>`<article class="ncard">${picture(r)}<div class="ncard-body"><span class="tag">${esc(r.categoria)}</span><h4>${esc(r.titulo)}</h4><p>${esc(r.descricao)}</p><div class="meta">${[r.turma,r.curso,r.autor].filter(Boolean).map(esc).join(' · ')}</div></div></article>`,'Nenhuma notícia publicada. Envie a primeira notícia da sua turma!');
+  $('#muralGrid').innerHTML=cards('noticia',r=>`<article class="ncard">${picture(r)}<div class="ncard-body"><span class="tag">${esc(r.categoria)}</span><h4>${esc(r.titulo)}</h4><p>${esc(r.descricao)}</p><div class="meta">${[r.turma,r.curso,r.autor].filter(Boolean).map(esc).join(' · ')}</div></div></article>`,'Nenhuma notícia publicada. Envie a primeira notícia da unidade!');
   $('#acoesGrid').innerHTML=cards('acao',r=>`<article class="mcard acao-card">${picture(r)}<h4>${esc(r.titulo)}</h4><p>${esc(r.descricao)}</p></article>`,'Nenhuma ação local publicada.');
   $('#saberesLista').innerHTML=cards('oficina',w=>`<article class="oficina-card"><div class="oficina-info"><h4>${esc(w.titulo)}</h4><div class="oficina-meta"><span>${workshopDetails(w)}</span></div></div>${w.inscritos<w.vagas?btn('Inscrever-se','inscrever',w.id):'<span class="vagas-badge">Vagas esgotadas</span>'}</article>`,'Nenhuma oficina aprovada no momento.');
 }

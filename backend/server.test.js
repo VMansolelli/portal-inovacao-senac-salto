@@ -53,6 +53,15 @@ test('API pública, login, autorização, inscrições e logout',async t=>{
   assert.equal((await req('admin/editar-noticia',noticia,headers)).status,200);
   assert.equal(calls.at(-1).op,'admin/editar-noticia');
   assert.equal(calls.at(-1).p.imagem,undefined);
+  const institucional={titulo:'Exposição aberta',descricao:'Convite à comunidade',categoria:'Evento'};
+  for(const extras of [{},{turma:'T1'},{curso:'TI'},{turma:'',curso:''}]){
+    assert.equal((await req('noticia',{...institucional,...extras,imagem:'data:image/jpeg;base64,/9j/AA=='})).status,201);
+    assert.equal(calls.at(-1).p.turma,extras.turma||'');
+    assert.equal(calls.at(-1).p.curso,extras.curso||'');
+  }
+  assert.equal((await req('admin/editar-noticia',{...institucional,id:'abc',turma:'',curso:''},headers)).status,200);
+  assert.equal(calls.at(-1).p.curso,'');
+  assert.equal(calls.at(-1).p.turma,'');
   assert.equal((await req('admin/excluir-noticia',{id:'abc'})).status,403);
   assert.equal((await req('admin/excluir-noticia',{id:'abc'},headers)).status,200);
   assert.equal(calls.at(-1).op,'admin/excluir-noticia');

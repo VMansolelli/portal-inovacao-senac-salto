@@ -241,12 +241,12 @@ export function createPortal(config, remote = fetch) {
           res.setHeader('Set-Cookie',sessionCookie('',0));
           if(token)await auth('logout?scope=local',{method:'POST',headers:{Authorization:'Bearer '+token}});
           return reply(200,{ok:true});
-        case 'noticia': data={...fields(b,['titulo','turma','curso','descricao','categoria'],['autor']),imagem:photo(b)};break;
+        case 'noticia': data={...fields(b,['titulo','descricao','categoria'],['autor','turma','curso']),imagem:photo(b)};break;
         case 'oficina': data=workshop(b,false,new Map(await mapRpc('salas',{})));break;
         case 'ideia': data=fields(b,['perfil','categoria','texto'],['nome']);break;
         case 'inscrever':data=fields(b,['nome','email','workshop'],['cargo','area']);break;
         case 'admin/editar-noticia':
-          data=fields(b,['id','titulo','turma','curso','descricao','categoria'],['autor']);
+          data=fields(b,['id','titulo','descricao','categoria'],['autor','turma','curso']);
           if(b.imagem!==undefined)data.imagem=photo(b);
           break;
         case 'admin/editar-acao':
