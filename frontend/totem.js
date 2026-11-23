@@ -71,22 +71,33 @@ function mostrarVideo(i,forcar=false){
  player.onended=()=>{if(listaVideos.length===1)player.play().catch(()=>{});else seguinte();};
  player.onerror=()=>{box.innerHTML='<p>Vídeo indisponível no momento.</p>';tentativa=setTimeout(seguinte,12000);};
 }
+let chaveCentro=null, tempoCentro, indiceCentro=0;
+function centro(){
+ const avisos=dados?.avisos||[];
+ const cursos=avisos.filter(a=>a.tipo==='Curso'&&a.imagem_curso);
+ const reels=avisos.filter(a=>a.tipo==='Reel'&&(a.video||/^https:\/\/www\.instagram\.com\/reel\/[A-Za-z0-9_-]+\/$/.test(a.instagram_reel)));
+ const fila=[];
+ for(let i=0;i<Math.max(cursos.length,reels.length);i++){
+   if(cursos[i])fila.push(cursos[i]);if(reels[i])fila.push(reels[i]);
+ }
+ indiceCentro%=Math.max(1,fila.length);
+ const item=fila[indiceCentro];
+ const chave=JSON.stringify([item,fila.map(a=>a.id)]);
+ if(chave===chaveCentro)return;
+ chaveCentro=chave;clearTimeout(tempoCentro);
+ const box=el('#centro');
+ if(!item){box.innerHTML='<div class="curso-copy"><strong>Senac Salto</strong></div>';return;}
+ if(item.tipo==='Curso'){
+   box.innerHTML='<img alt="" src="'+h(item.imagem_curso)+'"><div class="curso-copy"><small>Cursos Senac Salto</small><strong>'+h(item.titulo)+'</strong><div class="convite"><span>Inscreva-se</span><div class="codigo"></div></div></div>';
+   box.querySelector('.convite').hidden=!desenharQR(box.querySelector('.codigo'),item.inscricao_url);
+ }else if(item.video){box.innerHTML=midia(item);}
+ else{box.innerHTML='<iframe title="Reel do Senac Salto" src="'+h(item.instagram_reel)+'embed/" allow="autoplay; encrypted-media; fullscreen" referrerpolicy="strict-origin-when-cross-origin"></iframe>';}
+ if(fila.length>1)tempoCentro=setTimeout(()=>{indiceCentro++;centro();},item.tipo==='Curso'?15000:30000);
+}
 function ofertas(){
- const cursos=(dados?.avisos||[]).filter(x=>x.tipo==='Curso');
+ centro();
  const oficinas=(dados?.itens||[]).filter(x=>x.tipo==='oficina');
  oficinaAtual=oficinas[oportunidade%oficinas.length];
- const curso=cursos[oportunidade%cursos.length];
- const reel=el('#ver-reel');
- const reelURL=curso?.instagram_reel||'';
- reel.hidden=!/^https:\/\/www\.instagram\.com\/reel\/[A-Za-z0-9_-]+\/$/.test(reelURL);
- reel.onclick=()=>{if(!reel.hidden)abrir('<iframe class="instagram" title="Reel do Instagram" referrerpolicy="strict-origin-when-cross-origin" allow="autoplay; encrypted-media; fullscreen" src="'+h(reelURL)+'embed/"></iframe>');};
- el('#curso').textContent=curso?.titulo||'Sem divulgação no momento';
- const foto=el('#imagem-curso');
- if(foto.dataset.origem!==(curso?.imagem_curso||'')){
-   foto.dataset.origem=curso?.imagem_curso||'';foto.hidden=!curso?.imagem_curso;
-   if(curso?.imagem_curso){foto.onerror=()=>{foto.hidden=true;};foto.src=curso.imagem_curso;}else foto.removeAttribute('src');
- }
- el('#convite-curso').hidden=!desenharQR(el('#qr-curso'),curso?.inscricao_url);
  el('#avaliacao').hidden=!desenharQR(el('#qr-avaliacao'),dados?.horarios?.avaliacao);
  const capa=el('#oficina-foto');
  if(capa.dataset.origem!==(oficinaAtual?.foto||'')){

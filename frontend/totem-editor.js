@@ -2,7 +2,14 @@
 let estado,arquivo='',legenda='',enviando=false;
 const ed=el('#edicao'),hor=el('#hora');
 function mensagem(txt){el('#msg').textContent=txt;}
-function tipo(){el('#linksCurso').hidden=ed.elements.tipo.value!=='Curso';for(const k of ['imagem_curso','instagram_reel','inscricao_url'])ed.elements[k].disabled=el('#linksCurso').hidden;el('#captions').hidden=el('#anexo').hidden=ed.elements.tipo.value!=='Vídeo';}
+function tipo(){
+ const destino=ed.elements.tipo.value;
+ const grupos={'#linksCurso':destino==='Curso','#linkReel':destino==='Reel','#soLink':destino==='Reel','#anexo':['Reel','Vídeo'].includes(destino),'#captions':destino==='Vídeo'};
+ for(const [id,visivel] of Object.entries(grupos)){
+   const grupo=el(id);grupo.hidden=!visivel;
+   for(const input of grupo.querySelectorAll('input'))input.disabled=!visivel;
+ }
+}
 function limpar(){ed.reset();ed.elements.id.value='';ed.elements.inicio.value=diaAtual();ed.elements.fim.value=diaAtual();legenda='';el('#vttAtual').textContent='';arquivo='';el('#existente').textContent='';tipo();}
 ed.elements.tipo.onchange=tipo;
 ed.onreset=()=>setTimeout(()=>{if(!ed.elements.titulo.value){ed.elements.id.value='';legenda='';el('#vttAtual').textContent='';arquivo='';ed.elements.inicio.value=diaAtual();ed.elements.fim.value=diaAtual();el('#existente').textContent='';tipo();}},0);
@@ -15,18 +22,20 @@ async function carregar(){
 async function salvar(op,d){await pedido('admin/totem/'+op,d);await carregar();mensagem('Alteração salva.');}
 hor.onsubmit=async e=>{e.preventDefault();try{await salvar('horarios',Object.fromEntries(new FormData(hor)));}catch(err){mensagem(err.message);}};
 ed.onsubmit=async e=>{
- e.preventDefault();if(enviando)return;enviando=true;const d=Object.fromEntries(new FormData(ed));const file=d.video;delete d.video;const vtt=d.vtt;delete d.vtt;
+ e.preventDefault();if(enviando)return;enviando=true;const d=Object.fromEntries(new FormData(ed));const file=d.cartaz||d.video;delete d.video;delete d.cartaz;const vtt=d.vtt;delete d.vtt;
  for(const c of ed.elements)c.disabled=true;
  try{
   if(d.fim<d.inicio)throw Error('Confira as datas da divulgação.');
-  if(d.tipo==='Vídeo'&&file.size){
-   mensagem('Enviando vídeo…');const upload=await pedido('admin/totem/upload',{mime:file.type,bytes:file.size});
+  if(d.so_link&&file?.size)throw Error('Escolha o arquivo ou marque a opção de usar somente o link.');
+  if(d.so_link&&!d.instagram_reel)throw Error('Cole o link da publicação.');
+  if(file?.size){
+   mensagem('Enviando arquivo…');const upload=await pedido('admin/totem/upload',{mime:file.type,bytes:file.size});
    const r=await fetch(upload.url,{method:'PUT',headers:{'Content-Type':file.type},body:file});
    if(!r.ok)throw Error('Envio interrompido. Selecione o arquivo e tente novamente.');
-   arquivo=upload.arquivo;
+   if(d.tipo==='Curso'){d.imagem_curso=upload.publica;ed.elements.imagem_curso.value=upload.publica;}else arquivo=upload.arquivo;
   }
   if(d.tipo==='Vídeo'&&vtt.size){if(vtt.size>120000)throw Error('Legenda muito grande.');legenda=(await vtt.text()).replace(/^\uFEFF/,'');}
-  await salvar('aviso',{...d,legenda,arquivo:d.tipo==='Vídeo'?arquivo:''});limpar();
+  await salvar('aviso',{...d,legenda,arquivo:!d.so_link&&['Vídeo','Reel'].includes(d.tipo)?arquivo:''});limpar();
  }catch(err){mensagem(err.message);}finally{enviando=false;for(const c of ed.elements)c.disabled=false;tipo();}
 };
 document.addEventListener('click',async e=>{

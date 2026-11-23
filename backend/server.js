@@ -123,8 +123,8 @@ export function createPortal(config, remote = fetch) {
       if(op.startsWith('admin/totem/')){
         const acao=op.slice('admin/totem/'.length);
         if(acao==='upload'){
-          const ext={'video/mp4':'mp4','video/webm':'webm'}[b.mime];
-          insist(typeof ext==='string' && Number.isInteger(b.bytes)&&b.bytes>0&&b.bytes<=50331648,'Use MP4 ou WebM de até 48 MB.');
+          const ext={'video/mp4':'mp4','video/webm':'webm','image/jpeg':'jpg','image/png':'png','image/webp':'webp'}[b.mime];
+          insist(typeof ext==='string' && Number.isInteger(b.bytes)&&b.bytes>0&&b.bytes<=(b.mime.startsWith('image/')?8388608:50331648),'Use JPG, PNG ou WebP de até 8 MB, ou vídeo de até 48 MB.');
           const arquivo=randomBytes(16).toString('hex')+'.'+ext;
           const path='/object/upload/sign/totem-videos/'+arquivo;
           const response=await remote(new URL('/storage/v1'+path,base),{method:'POST',headers:{apikey:config.SUPABASE_SECRET_KEY,Authorization:'Bearer '+config.SUPABASE_SECRET_KEY,'Content-Type':'application/json'},body:'{}'});
@@ -132,7 +132,7 @@ export function createPortal(config, remote = fetch) {
           const {url}=await response.json();
           const signed=new URL(url,base);
           insist(signed.searchParams.has('token'),'Falha ao autorizar envio.',503);
-          return reply(200,{arquivo,url:new URL('/storage/v1'+path+signed.search,base).href});
+          return reply(200,{arquivo,publica:new URL('/storage/v1/object/public/totem-videos/'+arquivo,base).href,url:new URL('/storage/v1'+path+signed.search,base).href});
         }
         function linkOpcional(campo){
           if(b[campo]===undefined)return undefined;
@@ -146,9 +146,9 @@ export function createPortal(config, remote = fetch) {
         let d;
         if(acao==='aviso'){
           d=fields(b,['tipo','titulo','inicio','fim'],['id','descricao','arquivo']);
-          insist(['Curso','Ação','Vídeo'].includes(d.tipo)&&day(d.inicio)<=day(d.fim),'Confira tipo e período.');
+          insist(['Curso','Ação','Vídeo','Reel'].includes(d.tipo)&&day(d.inicio)<=day(d.fim),'Confira tipo e período.');
           d.imagem_curso=d.tipo==='Curso'?linkOpcional('imagem_curso'):'';
-          d.instagram_reel=d.tipo==='Curso'?linkOpcional('instagram_reel'):'';
+          d.instagram_reel=d.tipo==='Reel'?linkOpcional('instagram_reel'):'';
           if(d.instagram_reel){
             const url=new URL(d.instagram_reel);
             const match=url.pathname.match(/^\/reel\/([A-Za-z0-9_-]+)\/?$/);
@@ -158,7 +158,9 @@ export function createPortal(config, remote = fetch) {
           d.inscricao_url=d.tipo==='Curso'?linkOpcional('inscricao_url'):'';
           d.legenda=d.tipo==='Vídeo'?String(b.legenda||''):'';
           insist(!d.legenda||(d.legenda.length<=60000&&d.legenda.startsWith('WEBVTT')),'Use legenda WebVTT de até 60 mil caracteres.');
-          if(d.tipo==='Vídeo')insist(/^[a-f0-9]{32}[.](mp4|webm)$/.test(d.arquivo),'Anexe o vídeo.');else d.arquivo=null;
+          if(d.tipo==='Reel')insist(d.instagram_reel||d.arquivo,'Cole o link do Reel ou anexe o vídeo.');
+          if(d.tipo==='Curso')insist(d.imagem_curso,'Anexe a imagem do curso ou informe o endereço dela.');
+          if(d.tipo==='Vídeo'||(d.tipo==='Reel'&&d.arquivo))insist(/^[a-f0-9]{32}[.](mp4|webm)$/.test(d.arquivo),'Anexe o vídeo.');else d.arquivo=null;
         }else if(acao==='visibilidade'){d=fields(b,['id']);insist(typeof b.oculto==='boolean','Visibilidade inválida.');d.oculto=b.oculto;}
         else if(acao==='excluir')d=fields(b,['id']);
         else if(acao==='horarios')d={...fields(b,['secretaria','biblioteca']),avaliacao:linkOpcional('avaliacao')};
