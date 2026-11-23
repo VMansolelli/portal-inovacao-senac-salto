@@ -1,7 +1,8 @@
 import {randomBytes,createHash} from 'node:crypto';
+import {prepareMap,holiday,today,iso,day,oneDay,newPin,pinDigest} from './mapa.js';
 import http from 'node:http';
 import {pathToFileURL} from 'node:url';
-import {fields,workshop,photo,insist,salas} from './validation.js';
+import {fields,workshop,photo,insist} from './validation.js';
 
 export function createPortal(config, remote = fetch) {
   const origin = new URL(config.FRONTEND_ORIGIN).origin;
@@ -27,11 +28,26 @@ export function createPortal(config, remote = fetch) {
     return remote(new URL('/auth/v1/'+path,base),{...opts,signal:AbortSignal.timeout(15000),
       headers:{apikey:config.SUPABASE_PUBLISHABLE_KEY,'Content-Type':'application/json',...opts.headers}});
   }
-  async function rpc(op,p={}) {
-    const r=await remote(new URL('/rest/v1/rpc/portal_api',base),{method:'POST',signal:AbortSignal.timeout(20000),
+  const pinAttempts=new Map();
+  function limitPin(req){
+    // Bucket per network source, with a global ceiling for this process.
+    const source=req.headers['x-forwarded-for']?.split(',').at(-1)?.trim()||req.socket?.remoteAddress||'local';
+    const minute=Math.floor(Date.now()/60000);
+    for(const [k,v] of pinAttempts)if(v.minute!==minute)pinAttempts.delete(k);
+    for(const [key,limit] of [['all',600],['ip:'+source,100]]){
+      const attempts=(pinAttempts.get(key)?.attempts||0)+1;
+      pinAttempts.set(key,{attempts,minute});
+      insist(attempts<=limit,'Aguarde um minuto antes de tentar novamente.',429);
+    }
+  }
+  const mapRpc=(op,p)=>rpc(op,p,'mapa_api');
+  const mapAllowed=async u=>!!u?.email_confirmed_at && (u.id===masterId || await mapRpc('autorizado',{uid:u.id})===true);
+  async function rpc(op,p={},func='portal_api') {
+    const r=await remote(new URL('/rest/v1/rpc/'+func,base),{method:'POST',signal:AbortSignal.timeout(20000),
       headers:{apikey:config.SUPABASE_SECRET_KEY,'Content-Type':'application/json'},body:JSON.stringify({op,p})});
     insist(r.ok,'Não foi possível consultar o banco de dados.',503);
     const result=await r.json();
+    insist(!result?.denied,result?.denied,403);
     insist(!result?.conflict,result?.conflict,409);
     return result;
   }
@@ -54,7 +70,7 @@ export function createPortal(config, remote = fetch) {
   }
   return http.createServer(async(req,res)=>{
     function reply(status,data){
-      res.writeHead(status,{'Content-Type':'application/json; charset=utf-8'});res.end(JSON.stringify(data));
+      res.writeHead(status,{'Cache-Control':'no-store','Content-Type':'application/json; charset=utf-8'});res.end(JSON.stringify(data));
     }
     res.setHeader('Cache-Control','private, no-store');
     res.setHeader('X-Content-Type-Options','nosniff');
@@ -72,11 +88,20 @@ export function createPortal(config, remote = fetch) {
         insist(await authorized(staff),'Entre com a conta administrativa.',403);
         if(op.startsWith('master/'))insist(staff.id===masterId,'Acesso exclusivo do administrador principal.',403);
       }
+      const mapRequest=op.startsWith('mapa/');
+      const action=mapRequest?op.slice(5):op;
+      const accessRpc=mapRequest?mapRpc:rpc;
+      if(mapRequest && !['entrar','solicitar','ativar','pin-dia','retirar','devolver'].includes(action)){
+        staff=await verifiedUser(token);insist(await mapAllowed(staff),'Entre com uma conta autorizada para o Apoio.',403);
+        if(action.startsWith('master/'))insist(staff.id===masterId,'Exclusivo de Victor.',403);
+      }
       if(req.method==='GET'){
-        if(op==='versao')return reply(200,{versao:'painel-3',recuperacao:'link e chave de reserva',salas:salas.size});
+        if(op==='mapa/perfil')return reply(200,{master:staff.id===masterId,hoje:today()});
+        if(mapRequest && ['catalogo','recessos','master/lista'].includes(action))return reply(200,await mapRpc(action,{}));
+        if(op==='versao')return reply(200,{versao:'painel-3',recuperacao:'link e chave de reserva',mapa:'mapa-1',salas:(await mapRpc('salas',{})).length});
         if(op==='admin/perfil')return reply(200,{master:staff.id===masterId});
         if(op==='master/lista')return reply(200,await rpc(op));
-        if(op==='salas')return reply(200,[...salas]);
+        if(op==='salas')return reply(200,await mapRpc('salas',{}));
         if(['admin/lista','publico'].includes(op))return reply(200,await rpc(op));
         if(op.startsWith('admin/inscritos/'))return reply(200,await rpc('admin/inscritos',{id:op.slice(16)}));
         if(op.startsWith('foto/')){
@@ -88,22 +113,36 @@ export function createPortal(config, remote = fetch) {
       insist(req.method==='POST','Página não encontrada.',404);
       const b=await read(req);
       let data;
-      switch(op){
+      if(mapRequest && ['dia','pin-dia','retirar','devolver','criar','alterar','cancelar','cadastro','desativar','pin','recesso','remover-recesso','historico','corrigir'].includes(action)){
+        let payload=prepareMap(action,b);let generated;
+        if(['pin-dia','retirar','devolver'].includes(action)){limitPin(req);payload={...payload,hash:pinDigest(b.pin,config)};delete payload.pin;}
+        if(action==='pin'){if(b.id==='admin')insist(staff.id===masterId,'Exclusivo de Victor.',403);
+          generated=newPin();payload={id:b.id,hash:pinDigest(generated,config)};}
+        if(action==='corrigir')payload={...b,operador:staff.email};
+        if(action==='recesso')insist(typeof b.motivo==='string' && b.motivo.trim(),'Informe o motivo.');
+        const result=await mapRpc(action,payload);
+        if(action==='dia'||action==='pin-dia'){
+          const start=day(b.data);result.feriados=Array.from({length:b.semana?7:1},(_,i)=>iso(start+i*oneDay)).map(data=>({data,nome:holiday(data)})).filter(x=>x.nome);
+        }
+        return reply(200,generated?{pin:generated}:result);
+      }
+      if(mapRequest)insist(['solicitar','ativar','entrar','master/aprovar','master/rejeitar'].includes(action),'Página não encontrada.',404);
+      switch(action){
         case 'solicitar': {
           const d=fields(b,['nome','email']);
           insist(d.email.endsWith('@sp.senac.br'),'Use seu e-mail institucional @sp.senac.br.');
-          return reply(200,await rpc(op,d));
+          return reply(200,await accessRpc(action,d));
         }
         case 'master/aprovar': {
           const {id}=fields(b,['id']),codigo=newCode();
-          await rpc(op,{id,digest:digest(codigo)});return reply(200,{codigo});
+          await accessRpc(action,{id,digest:digest(codigo)});return reply(200,{codigo});
         }
-        case 'master/rejeitar':return reply(200,await rpc(op,fields(b,['id'])));
+        case 'master/rejeitar':return reply(200,await accessRpc(action,fields(b,['id'])));
         case 'ativar': {
           const {email,codigo}=fields(b,['email','codigo']);
           insist(typeof b.senha==='string' && b.senha.length>=8 && b.senha.length<=1024,'Use pelo menos 8 caracteres.');
           const hash=digest(codigo);
-          insist(await rpc('validar-convite',{email,digest:hash})===true,'Convite inválido ou expirado.',403);
+          insist(await accessRpc('validar-convite',{email,digest:hash})===true,'Convite inválido ou expirado.',403);
           const created=await authAdmin('','POST',{email,password:b.senha,email_confirm:true});
           let uid;
           if(created.ok){uid=(await created.json()).id;}
@@ -114,7 +153,7 @@ export function createPortal(config, remote = fetch) {
             const {user}=await login.json();uid=user?.email_confirmed_at && user.id;
           }
           insist(uid,'Conta sem confirmação.',403);
-          return reply(200,await rpc('ativar',{email,digest:hash,uid}));
+          return reply(200,await accessRpc('ativar',{email,digest:hash,uid}));
         }
         case 'admin/reserva': {
           const codigo=newCode();await rpc('guardar-reserva',{uid:staff.id,digest:digest(codigo)});
@@ -154,7 +193,7 @@ export function createPortal(config, remote = fetch) {
           insist(r.status<500,'Serviço de login indisponível.',503);
           insist(r.ok,'E-mail ou senha inválidos.',403);
           const s=await r.json();
-          insist(await authorized(s.user) && s.access_token,'Conta sem acesso administrativo.',403);
+          insist(await (mapRequest?mapAllowed(s.user):authorized(s.user)) && s.access_token,'Conta sem acesso administrativo.',403);
           res.setHeader('Set-Cookie',sessionCookie(s.access_token,Math.max(1,Math.floor(s.expires_in))));
           return reply(200,{ok:true});
         }
@@ -163,7 +202,7 @@ export function createPortal(config, remote = fetch) {
           if(token)await auth('logout?scope=local',{method:'POST',headers:{Authorization:'Bearer '+token}});
           return reply(200,{ok:true});
         case 'noticia': data={...fields(b,['titulo','turma','curso','descricao','categoria'],['autor']),imagem:photo(b)};break;
-        case 'oficina': data=workshop(b);break;
+        case 'oficina': data=workshop(b,false,new Map(await mapRpc('salas',{})));break;
         case 'ideia': data=fields(b,['perfil','categoria','texto'],['nome']);break;
         case 'inscrever':data=fields(b,['nome','email','workshop'],['cargo','area']);break;
         case 'admin/editar-noticia':
@@ -175,7 +214,7 @@ export function createPortal(config, remote = fetch) {
         case 'admin/excluir-oficina':case 'admin/apagar-ideia':case 'admin/arquivar-ideia':case 'admin/arquivar-noticia':
         case 'admin/excluir-noticia':data=fields(b,['id']);break;
         case 'admin/acao':data={...fields(b,['titulo','descricao']),imagem:photo(b)};break;
-        case 'admin/editar':data={...workshop(b,true),...fields(b,['id']),localLegado:!salas.has(b.local)};break;
+        case 'admin/editar':{const rooms=new Map(await mapRpc('salas',{}));data={...workshop(b,true,rooms),...fields(b,['id']),localLegado:!rooms.has(b.local)};break;}
         case 'admin/moderar':data=fields(b,['id','status']);insist(['aprovada','arquivada'].includes(data.status),'Decisão inválida.');break;
         case 'admin/apagar':data=fields(b,['id']);break;
         default: return reply(404,{erro:'Página não encontrada.'});

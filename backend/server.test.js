@@ -15,6 +15,7 @@ test('API pública, login, autorização, inscrições e logout',async t=>{
       const current=opts.headers.Authorization==='Bearer admin-token'?user:{...user,id:'another'};
       return Response.json(current);
     }
+    if(url.pathname==='/rest/v1/rpc/mapa_api')return Response.json(data.op==='salas'?[...salas]:false);
     assert.equal(url.pathname,'/rest/v1/rpc/portal_api');
     assert.equal(opts.headers.apikey,'test-secret');
     calls.push(data);
@@ -37,6 +38,10 @@ test('API pública, login, autorização, inscrições e logout',async t=>{
   assert.match(cookie,/HttpOnly/);assert.match(cookie,/Secure/);
   const headers={cookie:cookie.split(';')[0],origin:'https://portal.example'};
   assert.equal((await req('admin/lista',null,headers)).status,200);
+  assert.equal((await req('mapa/perfil',null,headers)).status,200);
+  assert.equal((await req('mapa/perfil',null,{cookie:'__Host-portal=outsider'})).status,403);
+  assert.equal((await req('mapa/cadastro',{tipo:'sala',nome:'Sala de teste'})).status,403);
+  assert.equal((await req('mapa/master/lista')).status,403);
   assert.equal((await req('admin/inscritos/abc',null,headers)).status,200);
   assert.deepEqual(calls.at(-1),{op:'admin/inscritos',p:{id:'abc'}});
   assert.equal((await req('admin/moderar',{id:'abc',status:'aprovada'},{...headers,origin:'https://outro.example'})).status,403);

@@ -114,18 +114,19 @@ function news(row){
     if(row)await refreshBoth();
   });
 }
-const salas=new Map([
-  ['Sala 1',29], ['Sala 2',15], ['Sala 3',24], ['Lab Digital 4',35],
-  ['Lab Software 5',38], ['Sala 6',29], ['Sala 7',29], ['Lab Software 8',38],
-  ['Lab Hardware 9',24], ['Sala 10',29], ['Sala 11',29], ['Lab Gastronomia 12',20],
-  ['Lab Bar 13',18], ['Lab Bem Estar 14',20], ['Sala 15',29], ['Sala 16',29],
-  ['Lab Beleza 17',32], ['Auditório',128], ['Biblioteca',48]
-]);
-function workshop(row){
-  const button=$("#openOficinaForm");
+async function workshop(row){
+  const button=$('#openOficinaForm');
   const box=editor(row?'Editar oficina':'Nova oficina',wkForm,row?null:button);
   if(!box)return;
   const form=box.form, local=form.elements.local, vagas=form.elements.vagas;
+  local.replaceChildren(new Option('Carregando salas…',''));local.disabled=true;
+  const submit=$('[type=submit]',form);submit.disabled=true;
+  let salas;
+  try{salas=new Map(await api('salas'));}
+  catch{local.replaceChildren(new Option('Salas indisponíveis',''));const retry=document.createElement('button');
+    retry.type='button';retry.textContent='Tentar carregar as salas novamente';
+    retry.onclick=()=>{box.close();workshop(row);};form.append(retry);return;}
+  local.disabled=false;submit.disabled=false;
   local.replaceChildren(new Option('Selecione o local',''));
   for(const [nome,capacidade] of salas)local.add(new Option(nome+' · '+capacidade+' pessoas',nome));
   if(row && !salas.has(row.local))local.add(new Option(row.local+' (cadastro anterior)',row.local));

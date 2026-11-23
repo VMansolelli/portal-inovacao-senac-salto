@@ -23,11 +23,11 @@ export const salas = new Map([
   ['Lab Bar 13',18], ['Lab Bem Estar 14',20], ['Sala 15',29], ['Sala 16',29],
   ['Lab Beleza 17',32], ['Auditório',128], ['Biblioteca',48]
 ]);
-export function workshop(input, editing=false) {
+export function workshop(input, editing=false, rooms=salas) {
   const w = fields(input,['titulo','docente','email','area','data','inicio','termino','local']);
   w.vagas = Number(input.vagas);
   insist(Number.isSafeInteger(w.vagas) && w.vagas >= 1 && w.vagas <= 10000,'Informe entre 1 e 10.000 vagas.');
-  const limite=salas.get(w.local);
+  const limite=rooms.get(w.local);
   insist(limite || editing,'Selecione um local da lista.');
   insist(!limite || w.vagas<=limite,'A quantidade de vagas excede a capacidade da sala.');
   const day = new Date(w.data+'T12:00:00Z');
