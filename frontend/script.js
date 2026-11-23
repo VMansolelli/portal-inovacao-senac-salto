@@ -34,6 +34,7 @@ seats.required=true; seats.max='10000'; seats.placeholder='Quantidade de pessoas
 $('.form-title',originalWorkshop).remove();
 $('.two-col',originalWorkshop).insertAdjacentHTML('afterend',field('email','E-mail do docente','email'));
 originalWorkshop.className='form-grid';
+originalWorkshop.querySelector('[type=submit]').insertAdjacentHTML('beforebegin',field('imagem','Imagem da oficina (opcional)','file',false));
 const wkForm=originalWorkshop.outerHTML;
 let timer, publicRows=[], adminRows=[], tab='noticia';
 function notify(msg) {
@@ -130,7 +131,7 @@ async function workshop(row){
   local.replaceChildren(new Option('Selecione o local',''));
   for(const [nome,capacidade] of salas)local.add(new Option(nome+' · '+capacidade+' pessoas',nome));
   if(row && !salas.has(row.local))local.add(new Option(row.local+' (cadastro anterior)',row.local));
-  for(const input of form.elements) if(input.name && row)input.value=row[input.name];
+  for(const input of form.elements) if(input.name && row && input.type!=='file')input.value=row[input.name]??'';
   function capacity(prefill){
     const max=salas.get(local.value);
     vagas.max=max||10000;
@@ -140,6 +141,7 @@ async function workshop(row){
   $('[type=submit]',form).textContent=row?'Salvar alterações':'Enviar para aprovação';
   wireSubmit(form,async data=>{
     if(data.termino<=data.inicio)throw Error('O término deve ser depois do início.');
+    if(data.imagem?.size)data.imagem=await jpeg(data.imagem);else delete data.imagem;
     await api(row?'admin/editar':'oficina',row?{...data,id:row.id}:data);
     box.close();notify(row?'Oficina atualizada.':'Oficina enviada para aprovação.');
     if(row)await refreshBoth();
@@ -150,7 +152,7 @@ async function refreshPublic(){
   const cards=(kind,render,none)=>publicRows.filter(r=>r.kind===kind).map(render).join('')||empty(none);
   $('#muralGrid').innerHTML=cards('noticia',r=>`<article class="ncard">${picture(r)}<div class="ncard-body"><span class="tag">${esc(r.categoria)}</span><h4>${esc(r.titulo)}</h4><p>${esc(r.descricao)}</p><div class="meta">${[r.turma,r.curso,r.autor].filter(Boolean).map(esc).join(' · ')}</div></div></article>`,'Nenhuma notícia publicada. Envie a primeira notícia da unidade!');
   $('#acoesGrid').innerHTML=cards('acao',r=>`<article class="mcard acao-card">${picture(r)}<h4>${esc(r.titulo)}</h4><p>${esc(r.descricao)}</p></article>`,'Nenhuma ação local publicada.');
-  $('#saberesLista').innerHTML=cards('oficina',w=>`<article class="oficina-card"><div class="oficina-info"><h4>${esc(w.titulo)}</h4><div class="oficina-meta"><span>${workshopDetails(w)}</span></div></div>${w.inscritos<w.vagas?btn('Inscrever-se','inscrever',w.id):'<span class="vagas-badge">Vagas esgotadas</span>'}</article>`,'Nenhuma oficina aprovada no momento.');
+  $('#saberesLista').innerHTML=cards('oficina',w=>`<article class="oficina-card"><div class="oficina-info">${picture(w)}<h4>${esc(w.titulo)}</h4><div class="oficina-meta"><span>${workshopDetails(w)}</span></div></div>${w.inscritos<w.vagas?btn('Inscrever-se','inscrever',w.id):'<span class="vagas-badge">Vagas esgotadas</span>'}</article>`,'Nenhuma oficina aprovada no momento.');
 }
 let master=false, requests=[];
 const tabs={noticia:'Notícias',acao:'Ações locais',oficina:'Oficinas',email:'E-mails',inscritos:'Inscritos e PDF',ideia:'Ideias'};

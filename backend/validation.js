@@ -34,6 +34,7 @@ export function workshop(input, editing=false, rooms=salas) {
   insist(/^\d{4}-\d\d-\d\d$/.test(w.data) && !isNaN(day) && day.toISOString().startsWith(w.data),'Data inválida.');
   const time = /^([01]\d|2[0-3]):[0-5]\d$/;
   insist(time.test(w.inicio) && time.test(w.termino) && w.inicio < w.termino,'O término deve ser depois do início.');
+  if(input.imagem!==undefined)w.imagem=photo(input);
   return w;
 }
 export function photo(input) {

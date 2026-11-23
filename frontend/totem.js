@@ -42,8 +42,6 @@ function grade(){
  el('#pagina').textContent=total>1?(pagina+1)+' de '+total:'';
  const linhas=lista.slice(pagina*porPagina,(pagina+1)*porPagina);
  el('#aulas').innerHTML=linhas.map(a=>'<tr><td>'+h(a.turma)+'</td><td>'+h(a.sala)+'</td><td>'+h(a.docente)+'</td><td>'+h(a.inicio.slice(0,5))+'–'+h(a.fim.slice(0,5))+'</td></tr>').join('')||(dados?'<tr><td colspan="4">Sem aulas neste turno.</td></tr>':'');
- const corpo=el('#aulas');
- while(corpo.rows.length<20){const linha=corpo.insertRow();linha.setAttribute('aria-hidden','true');for(let i=0;i<4;i++)linha.insertCell();}
 
 }
 function faixa(){
@@ -67,7 +65,7 @@ function mostrarVideo(i,forcar=false){
  clearTimeout(tentativa);chaveVideo=chave;idVideo=a?.id;
  const box=el('#reel');
  if(!a){box.innerHTML='<p>Nenhum vídeo em exibição.</p>';return;}
- box.innerHTML=midia(a).replace(' loop ',' ')+'<strong>'+h(a.titulo)+'</strong>';
+ box.innerHTML=midia(a).replace(' loop ',' ');
  const player=box.querySelector('video');
  const seguinte=()=>mostrarVideo((listaVideos.findIndex(v=>v.id===idVideo)+1)%listaVideos.length,true);
  player.onended=()=>{if(listaVideos.length===1)player.play().catch(()=>{});else seguinte();};
@@ -78,6 +76,10 @@ function ofertas(){
  const oficinas=(dados?.itens||[]).filter(x=>x.tipo==='oficina');
  oficinaAtual=oficinas[oportunidade%oficinas.length];
  const curso=cursos[oportunidade%cursos.length];
+ const reel=el('#ver-reel');
+ const reelURL=curso?.instagram_reel||'';
+ reel.hidden=!/^https:\/\/www\.instagram\.com\/reel\/[A-Za-z0-9_-]+\/$/.test(reelURL);
+ reel.onclick=()=>{if(!reel.hidden)abrir('<iframe class="instagram" title="Reel do Instagram" referrerpolicy="strict-origin-when-cross-origin" allow="autoplay; encrypted-media; fullscreen" src="'+h(reelURL)+'embed/"></iframe>');};
  el('#curso').textContent=curso?.titulo||'Sem divulgação no momento';
  const foto=el('#imagem-curso');
  if(foto.dataset.origem!==(curso?.imagem_curso||'')){
@@ -86,6 +88,11 @@ function ofertas(){
  }
  el('#convite-curso').hidden=!desenharQR(el('#qr-curso'),curso?.inscricao_url);
  el('#avaliacao').hidden=!desenharQR(el('#qr-avaliacao'),dados?.horarios?.avaliacao);
+ const capa=el('#oficina-foto');
+ if(capa.dataset.origem!==(oficinaAtual?.foto||'')){
+   capa.dataset.origem=oficinaAtual?.foto||'';capa.hidden=!oficinaAtual?.foto;
+   if(oficinaAtual?.foto){capa.onerror=()=>{capa.hidden=true;};capa.src=oficinaAtual.foto;}else capa.removeAttribute('src');
+ }
  el('#oficina').textContent=oficinaAtual?.titulo||'Sem oficina no momento';
  el('#inscrever').hidden=!oficinaAtual;
  el('#inscrever').textContent=oficinaAtual&&Number(oficinaAtual.vagas)>oficinaAtual.inscritos?'Inscreva-se →':'Ver oficina →';

@@ -2,7 +2,7 @@
 let estado,arquivo='',legenda='',enviando=false;
 const ed=el('#edicao'),hor=el('#hora');
 function mensagem(txt){el('#msg').textContent=txt;}
-function tipo(){el('#linksCurso').hidden=ed.elements.tipo.value!=='Curso';for(const k of ['imagem_curso','inscricao_url'])ed.elements[k].disabled=el('#linksCurso').hidden;el('#captions').hidden=el('#anexo').hidden=ed.elements.tipo.value!=='Vídeo';}
+function tipo(){el('#linksCurso').hidden=ed.elements.tipo.value!=='Curso';for(const k of ['imagem_curso','instagram_reel','inscricao_url'])ed.elements[k].disabled=el('#linksCurso').hidden;el('#captions').hidden=el('#anexo').hidden=ed.elements.tipo.value!=='Vídeo';}
 function limpar(){ed.reset();ed.elements.id.value='';ed.elements.inicio.value=diaAtual();ed.elements.fim.value=diaAtual();legenda='';el('#vttAtual').textContent='';arquivo='';el('#existente').textContent='';tipo();}
 ed.elements.tipo.onchange=tipo;
 ed.onreset=()=>setTimeout(()=>{if(!ed.elements.titulo.value){ed.elements.id.value='';legenda='';el('#vttAtual').textContent='';arquivo='';ed.elements.inicio.value=diaAtual();ed.elements.fim.value=diaAtual();el('#existente').textContent='';tipo();}},0);
@@ -33,7 +33,7 @@ document.addEventListener('click',async e=>{
  const b=e.target.closest('button[data-edit],button[data-del],button[data-vis]');if(!b||enviando)return;b.disabled=true;
  try{if(b.dataset.edit){
   const a=estado.avisos.find(x=>x.id===b.dataset.edit);ed.reset();
-  for(const k of ['id','tipo','titulo','descricao','inicio','fim','imagem_curso','inscricao_url'])ed.elements[k].value=a[k]||'';
+  for(const k of ['id','tipo','titulo','descricao','inicio','fim','imagem_curso','instagram_reel','inscricao_url'])ed.elements[k].value=a[k]||'';
   legenda=a.legenda||'';el('#vttAtual').textContent=legenda?'Legenda anexada.':'';arquivo=a.arquivo||'';el('#existente').textContent=arquivo?'Vídeo já anexado. Selecione outro para trocar.':'';tipo();ed.elements.titulo.focus();
  }else if(b.dataset.del){if(confirm('Excluir esta divulgação do totem?'))await salvar('excluir',{id:b.dataset.del});}
  else{const x=estado.itens.find(v=>v.id===b.dataset.vis);await salvar('visibilidade',{id:x.id,oculto:!x.oculto});}

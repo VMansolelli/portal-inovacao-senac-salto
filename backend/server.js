@@ -148,6 +148,13 @@ export function createPortal(config, remote = fetch) {
           d=fields(b,['tipo','titulo','inicio','fim'],['id','descricao','arquivo']);
           insist(['Curso','Ação','Vídeo'].includes(d.tipo)&&day(d.inicio)<=day(d.fim),'Confira tipo e período.');
           d.imagem_curso=d.tipo==='Curso'?linkOpcional('imagem_curso'):'';
+          d.instagram_reel=d.tipo==='Curso'?linkOpcional('instagram_reel'):'';
+          if(d.instagram_reel){
+            const url=new URL(d.instagram_reel);
+            const match=url.pathname.match(/^\/reel\/([A-Za-z0-9_-]+)\/?$/);
+            insist(['instagram.com','www.instagram.com'].includes(url.hostname)&&!url.port&&match,'Informe o link de um Reel público do Instagram.');
+            d.instagram_reel='https://www.instagram.com/reel/'+match[1]+'/';
+          }
           d.inscricao_url=d.tipo==='Curso'?linkOpcional('inscricao_url'):'';
           d.legenda=d.tipo==='Vídeo'?String(b.legenda||''):'';
           insist(!d.legenda||(d.legenda.length<=60000&&d.legenda.startsWith('WEBVTT')),'Use legenda WebVTT de até 60 mil caracteres.');
