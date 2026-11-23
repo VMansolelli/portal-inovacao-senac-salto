@@ -10,6 +10,13 @@ begin
  insert into mapa.entidade(tipo,nome,capacidade) values('sala',ha,20) returning id into sala;
  insert into mapa.entidade(tipo,nome,pin_hash) values('docente',ha,ha) returning id into a;
  insert into mapa.entidade(tipo,nome,pin_hash) values('docente',hb,hb) returning id into b;
+ resp:=public.mapa_api('desativar',jsonb_build_object('id',a));
+ if resp->>'ok' is distinct from 'true' then raise exception 'Desativação: %',resp;end if;
+ resp:=public.mapa_api('reativar',jsonb_build_object('id',a));
+ if resp->>'ok' is distinct from 'true' or not exists(select 1 from mapa.entidade where id=a and ativo and pin_hash is null)
+ then raise exception 'Reativação: %',resp;end if;
+ resp:=public.mapa_api('pin',jsonb_build_object('id',a,'hash',ha));
+ if resp->>'ok' is distinct from 'true' then raise exception 'Reemissão: %',resp;end if;
  base:=jsonb_build_object('tipo','reuniao','sala',sala,'datas',jsonb_build_array(data_local),'docentes',jsonb_build_array(a,b),'titulo','Teste','inicio','15:00','fim','16:00');
  resp:=public.mapa_api('criar',base);
  if resp->>'quantidade' is distinct from '1' then raise exception 'Criação: %',resp;end if;

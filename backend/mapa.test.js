@@ -19,3 +19,13 @@ test('Reunião avulsa usa o horário informado e edição de uma aula valida a n
  assert.throws(()=>booking({...aula,data:'2026-02-30'}));
  assert.ok(holiday('2026-04-03'));assert.ok(holiday('2026-06-04'));assert.ok(holiday('2026-09-08'));
 });
+
+test('PIN docente e administrativo preservam comprimento e zeros iniciais',async()=>{
+ const {newPin,pinDigest}=await import('./mapa.js');
+ const config={MAPA_PIN_SECRET:'teste-local'};
+ for(let i=0;i<20;i++){
+  assert.match(newPin(),/^\d{4}$/);assert.match(newPin(true),/^\d{10}$/);
+ }
+ assert.notEqual(pinDigest('0001',config),pinDigest('0000000001',config));
+ assert.throws(()=>pinDigest('123',config));
+});

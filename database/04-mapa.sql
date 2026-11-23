@@ -7,6 +7,7 @@ create table if not exists mapa.entidade(
  capacidade int check(capacidade between 1 and 10000), curso uuid references mapa.entidade(id),
  pin_hash text unique, unique(tipo,nome));
 create table if not exists mapa.config(id boolean primary key default true check(id),pin_hash text);
+create table if not exists mapa.falhas_pin(origem text primary key, erros integer not null, expira timestamptz not null);
 create table if not exists mapa.recesso(dia date primary key,motivo text not null);
 create table if not exists mapa.reserva(
  id uuid primary key default gen_random_uuid(),serie uuid not null, tipo text not null check(tipo in ('aula','reuniao')),
@@ -36,7 +37,7 @@ declare
  d date; ini time; term time; t text; who text; msg text; pinid uuid; override_pin boolean; result jsonb;
  hoje date:=(now() at time zone 'America/Sao_Paulo')::date; countrows int:=0; sk int:=0;
 begin
- if op not in ('salas','catalogo','dia','historico','recessos','autorizado','master/lista','validar-convite','pin-dia') then
+ if op not in ('salas','catalogo','dia','historico','recessos','autorizado','master/lista','validar-convite') then
    perform pg_advisory_xact_lock(830174321);
  end if;
  case op
@@ -68,10 +69,18 @@ begin
     where (k.retirada at time zone 'America/Sao_Paulo')::date=(p->>'data')::date or (k.devolucao at time zone 'America/Sao_Paulo')::date=(p->>'data')::date or k.devolucao is null) x);
  when 'pin-dia','retirar','devolver','dia' then
   if op<>'dia' then
+   delete from mapa.falhas_pin where expira<=now();
+   if exists(select 1 from mapa.falhas_pin where (origem=coalesce(p->>'origem','local') and erros>=5) or (origem='global' and erros>=30)) then
+     return '{"limited":"Muitas tentativas. Aguarde até 15 minutos e tente novamente."}';
+   end if;
    select id,nome into pinid,who from mapa.entidade where tipo='docente' and ativo and pin_hash=p->>'hash';
    override_pin:=exists(select 1 from mapa.config where pin_hash=p->>'hash');
    if override_pin then who:='PIN administrativo'; end if;
-   if who is null then return '{"denied":"PIN inválido ou desativado."}';end if;
+   if who is null then
+    insert into mapa.falhas_pin as f(origem,erros,expira)
+    values(coalesce(p->>'origem','local'),1,now()+interval '15 minutes'),('global',1,now()+interval '15 minutes')
+    on conflict(origem) do update set erros=f.erros+1;
+    return '{"denied":"PIN inválido ou desativado."}';end if;
   end if;
   if op in ('dia','pin-dia') then
     d:=(p->>'data')::date;
@@ -119,6 +128,14 @@ begin
     exists(select 1 from mapa.chave where devolucao is null and (sala=eid or eid=any(permitidos))) or
     exists(select 1 from mapa.entidade where curso=eid and ativo) then raise exception 'Há vínculos ativos. Realoque as reservas, turmas ou chaves antes de desativar.';end if;
   update mapa.entidade set ativo=false,pin_hash=null where id=eid;
+ when 'reativar' then
+  eid:=(p->>'id')::uuid;
+  if exists(select 1 from mapa.entidade turma join mapa.entidade curso on curso.id=turma.curso
+      where turma.id=eid and turma.tipo='turma' and not curso.ativo) then
+    raise exception 'Reative o curso antes de reativar a turma.';
+  end if;
+  update mapa.entidade set ativo=true where id=eid;
+  if not found then raise exception 'Cadastro indisponível.';end if;
  when 'pin' then
   if exists(select 1 from mapa.entidade where pin_hash=p->>'hash') or exists(select 1 from mapa.config where pin_hash=p->>'hash') then raise exception 'Gere o PIN novamente.';end if;
   if p->>'id'='admin' then insert into mapa.config values(true,p->>'hash') on conflict(id) do update set pin_hash=excluded.pin_hash;

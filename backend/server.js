@@ -39,6 +39,7 @@ export function createPortal(config, remote = fetch) {
       pinAttempts.set(key,{attempts,minute});
       insist(attempts<=limit,'Aguarde um minuto antes de tentar novamente.',429);
     }
+    return digest(source);
   }
   const mapRpc=(op,p)=>rpc(op,p,'mapa_api');
   const mapAllowed=async u=>!!u?.email_confirmed_at && (u.id===masterId || await mapRpc('autorizado',{uid:u.id})===true);
@@ -47,6 +48,7 @@ export function createPortal(config, remote = fetch) {
       headers:{apikey:config.SUPABASE_SECRET_KEY,'Content-Type':'application/json'},body:JSON.stringify({op,p})});
     insist(r.ok,'Não foi possível consultar o banco de dados.',503);
     const result=await r.json();
+    insist(!result?.limited,result?.limited,429);
     insist(!result?.denied,result?.denied,403);
     insist(!result?.conflict,result?.conflict,409);
     return result;
@@ -113,18 +115,23 @@ export function createPortal(config, remote = fetch) {
       insist(req.method==='POST','Página não encontrada.',404);
       const b=await read(req);
       let data;
-      if(mapRequest && ['dia','pin-dia','retirar','devolver','criar','alterar','cancelar','cadastro','desativar','pin','recesso','remover-recesso','historico','corrigir'].includes(action)){
+      if(mapRequest && ['dia','pin-dia','retirar','devolver','criar','alterar','cancelar','cadastro','desativar','reativar','pin','recesso','remover-recesso','historico','corrigir'].includes(action)){
         let payload=prepareMap(action,b);let generated;
-        if(['pin-dia','retirar','devolver'].includes(action)){limitPin(req);payload={...payload,hash:pinDigest(b.pin,config)};delete payload.pin;}
+        if(['pin-dia','retirar','devolver'].includes(action)){const origem=limitPin(req);payload={...payload,origem,hash:pinDigest(b.pin,config)};delete payload.pin;}
         if(action==='pin'){if(b.id==='admin')insist(staff.id===masterId,'Exclusivo de Victor.',403);
-          generated=newPin();payload={id:b.id,hash:pinDigest(generated,config)};}
+          for(let tentativa=0;tentativa<25;tentativa++){
+            generated=newPin(b.id==='admin');
+            try{await mapRpc('pin',{id:b.id,hash:pinDigest(generated,config)});return reply(200,{pin:generated});}
+            catch(err){if(err.status!==409||err.message!=='Gere o PIN novamente.')throw err;}
+          }
+          insist(false,'Não foi possível emitir um PIN exclusivo. Tente novamente.',409);}
         if(action==='corrigir')payload={...b,operador:staff.email};
         if(action==='recesso')insist(typeof b.motivo==='string' && b.motivo.trim(),'Informe o motivo.');
         const result=await mapRpc(action,payload);
         if(action==='dia'||action==='pin-dia'){
           const start=day(b.data);result.feriados=Array.from({length:b.semana?7:1},(_,i)=>iso(start+i*oneDay)).map(data=>({data,nome:holiday(data)})).filter(x=>x.nome);
         }
-        return reply(200,generated?{pin:generated}:result);
+        return reply(200,result);
       }
       if(mapRequest)insist(['solicitar','ativar','entrar','master/aprovar','master/rejeitar'].includes(action),'Página não encontrada.',404);
       switch(action){

@@ -1,0 +1,22 @@
+footer.rodape-portal{background:#fff;color:var(--blue-dark);border-top:1px solid var(--line);padding:48px 0 18px;text-align:left}
+.rodape-links{display:grid;grid-template-columns:1.35fr 1fr 1fr 1fr;gap:32px}
+.rodape-portal .brand{width:fit-content}
+.rodape-portal .brand+p{color:var(--ink-soft);margin:8px 0 0;font-size:15px}
+.rodape-grupo h3,.rodape-grupo summary{font-size:16px;font-weight:700;color:var(--blue-dark)}
+.rodape-grupo summary{display:none}
+.rodape-grupo ul{display:grid;gap:2px;margin:8px 0 0;padding:0;list-style:none}
+.rodape-portal a{color:var(--blue);text-decoration:none}
+.rodape-grupo a,.rodape-base a{display:inline-flex;align-items:center;min-height:32px;font-size:16px}
+.rodape-portal a:hover{text-decoration:underline}
+.rodape-base{margin-top:28px;padding-top:12px;border-top:1px solid var(--line);text-align:right}
+@media(max-width:700px){
+ footer.rodape-portal{padding-top:28px}
+ .rodape-links{display:block}
+ .rodape-links>div:first-child{margin-bottom:20px}
+ .rodape-grupo{border-top:1px solid var(--line)}
+ .rodape-grupo h3{display:none}
+ .rodape-grupo summary{display:list-item;cursor:pointer;min-height:48px;padding:14px 0}
+ .rodape-grupo ul{margin:0 0 8px}
+ .rodape-grupo a,.rodape-base a{display:flex;min-height:46px}
+ .rodape-base{margin-top:0}.rodape-base a{justify-content:flex-end}
+}

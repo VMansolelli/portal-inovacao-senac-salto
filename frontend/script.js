@@ -462,3 +462,13 @@ wireSubmit($('#formIdeia'),async (_,form)=>{
 refreshPublic().catch(()=>{for(const id of ['muralGrid','acoesGrid','saberesLista'])$('#'+id).innerHTML=empty('Não foi possível carregar. Atualize a página para tentar novamente.');});
 if(!handleRecoveryLink() && new URLSearchParams(location.search).has('painel'))adminOpen();
 })();
+
+// Os acessos ficam abertos ao entrar no rodapé pelo celular.
+const rodapeMobile = window.matchMedia('(max-width: 700px)');
+function ajustarRodape() {
+  document.querySelectorAll('.rodape-grupo details').forEach(grupo => {
+    grupo.open = !rodapeMobile.matches || grupo.querySelector('summary').textContent === 'Acessos';
+  });
+}
+ajustarRodape();
+rodapeMobile.addEventListener('change', ajustarRodape);

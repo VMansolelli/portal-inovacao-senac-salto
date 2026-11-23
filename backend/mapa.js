@@ -43,10 +43,13 @@ export function booking(b){
   return {tipo:kind,sala:b.sala,turma:kind==='aula'?b.turma:null,docentes:teachers,titulo:String(b.titulo||'').trim().slice(0,180),inicio:start,fim:end,datas:dates,aceitarAviso:b.aceitarAviso===true};
 }
 export function pinDigest(pin,config){
-  insist(typeof pin==='string' && /^\d{10}$/.test(pin),'Informe o PIN de 10 dígitos.',403);
+  insist(typeof pin==='string' && /^(?:\d{4}|\d{10})$/.test(pin),'Informe seu PIN de 4 ou 10 dígitos.',403);
   return createHmac('sha256',config.MAPA_PIN_SECRET||config.SUPABASE_SECRET_KEY).update('mapa:'+pin).digest('hex');
 }
-export const newPin=()=>String(randomInt(0,10000000000)).padStart(10,'0');
+export function newPin(admin=false){
+  const digits=admin?10:4;
+  return String(randomInt(10**digits)).padStart(digits,'0');
+}
 export const today=()=>new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Sao_Paulo'}).format(new Date());
 export function prepareMap(op,b){
   if(op==='criar')return booking(b);

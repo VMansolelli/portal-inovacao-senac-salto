@@ -48,7 +48,7 @@ async function entry(){
 function gate(){
  const isDesk=desk();
  if(isDesk){
- $('#page').innerHTML='<section class="pin-card"><h2>Consultar minha reserva</h2><p>Digite seu PIN para retirar ou devolver a chave.</p><form class="form">'+input('PIN do docente','pin','password','','required inputmode="numeric" pattern="[0-9]{10}" maxlength="10" placeholder="10 dígitos" autocomplete="off"')+submit('Ver minhas reservas')+'</form><p role="alert" class="gate-error"></p></section>';
+ $('#page').innerHTML='<section class="pin-card"><h2>Consultar minha reserva</h2><p>Digite seu PIN para retirar ou devolver a chave.</p><form class="form">'+input('PIN do docente','pin','password','','required inputmode="numeric" pattern="([0-9]{4}|[0-9]{10})" maxlength="10" placeholder="Digite seu PIN" autocomplete="off"')+submit('Ver minhas reservas')+'</form><p role="alert" class="gate-error"></p></section>';
  formWire($('#page form'),async d=>{await api('pin-dia',{pin:d.pin,data:date});pin=d.pin;resetTimer();say('');await render();},$('.gate-error'));
  return;
  }
@@ -134,7 +134,7 @@ function showCatalog(){
  const list=catalog.filter(x=>x.tipo===category);
  $('#page').innerHTML=tools('Cadastros',btn('Adicionar','novo-cadastro','','primary'))+'<div class="buttons">'+Object.entries(labelType).map(([k,v])=>btn(v,'categoria',k,category===k?'primary':'')).join('')+'</div>'+
   list.map(e=>row(e.nome,[e.capacidade?e.capacidade+' lugares':'',catalog.find(x=>x.id===e.curso)?.nome,e.ativo?'Ativo':'Desativado'].filter(Boolean).join(' · '),
-  e.ativo?btn('Editar','editar-cadastro',e.id)+(category==='docente'?btn('Gerar PIN','pin',e.id):'')+btn('Desativar','desativar',e.id):'')).join('');
+  e.ativo?btn('Editar','editar-cadastro',e.id)+(category==='docente'?btn('Gerar PIN','pin',e.id):'')+btn('Desativar','desativar',e.id):btn('Reativar','reativar',e.id))).join('');
 }
 const options=tipo=>catalog.filter(e=>e.tipo===tipo&&e.ativo).map(e=>[e.id,e.nome]);
 const scope=()=>select('Aplicar a','escopo',[['uma','Somente esta aula'],['proximas','Esta e as próximas'],['serie','Toda a série']],'uma');
@@ -178,6 +178,11 @@ async function act(action,id){
      (category==='turma'?select('Curso','curso',options('curso'),r?.curso):''),async d=>{
        await api('cadastro',{...d,id,tipo:category});await done('Cadastro salvo.');
      });
+ }
+ if(action==='reativar'){
+   await api(action,{id});await render();
+   say(category==='docente'?'Docente reativado. Use Gerar PIN para emitir um novo código.':'Cadastro reativado.');
+   return;
  }
  if(action==='desativar'){if(confirm('Desativar este cadastro para novas reservas?')){await api(action,{id});await render();}return;}
  if(action==='pin'){
