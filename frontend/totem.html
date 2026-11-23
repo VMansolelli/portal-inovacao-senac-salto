@@ -1,8 +1,8 @@
 <!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Salas de hoje · Senac Salto</title><link rel="stylesheet" href="totem-grade.css"><script defer src="totem-base.js"></script><script defer src="totem.js"></script></head><body><main>
 <header><div class="marca"><img src="senac-logo.png" alt="Senac"><b>Salto</b></div><div class="data"><span id="dia"></span><time id="clock"></time></div></header>
-<section class="grade"><div class="titulo"><h1>Salas de hoje</h1><div><strong id="turno"></strong><small id="pagina"></small></div></div>
+<section class="grade"><div class="titulo"><h1>Salas de hoje</h1><div><nav id="turnos" aria-label="Consultar aulas de hoje por turno"><button data-turno="0">Manhã</button><button data-turno="1">Tarde</button><button data-turno="2">Noite</button></nav><small id="pagina"></small></div></div>
 <table><colgroup><col style="width:19%"><col style="width:31%"><col style="width:30%"><col style="width:20%"></colgroup><thead><tr><th>Turma</th><th>Sala</th><th>Docente</th><th>Horário</th></tr></thead><tbody id="aulas"></tbody></table><p id="status" role="status"></p></section>
-<section id="noticia" aria-label="Mural da unidade"></section>
+<div class="midias"><section id="noticia" aria-label="Notícias da unidade"></section><section class="reels" aria-label="Vídeos da unidade"><h2>Vídeos da unidade</h2><div id="reel"></div></section></div>
 <section class="oportunidades"><div><small>Cursos Senac Salto</small><strong id="curso">—</strong></div><div><small>Saberes em Movimento</small><strong id="oficina">—</strong><button id="inscrever" hidden>Inscreva-se →</button></div></section>
 <footer><h2>Horários de atendimento</h2><div id="horarios"></div></footer></main>
 <dialog id="detalhe"><button class="fechar" type="button">Fechar</button><div id="detalheBody"></div></dialog></body></html>

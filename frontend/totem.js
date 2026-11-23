@@ -21,9 +21,21 @@ function relogio(){
  el('#clock').textContent=horaAtual();
  el('#dia').textContent=new Intl.DateTimeFormat('pt-BR',{weekday:'long',day:'numeric',month:'long',timeZone:'America/Sao_Paulo'}).format(new Date());
 }
+let escolha=null, retorno;
+function voltarAoAtual(){escolha=null;pagina=0;grade();}
+function adiarRetorno(){
+ clearTimeout(retorno);
+ if(escolha!==null)retorno=setTimeout(voltarAoAtual,60000);
+}
+el('#turnos').onclick=e=>{
+ const b=e.target.closest('[data-turno]');if(!b)return;
+ const selecionado=Number(b.dataset.turno);
+ escolha=selecionado===turnoHora(horaAtual())?null:selecionado;pagina=0;adiarRetorno();grade();
+};
+for(const evento of ['pointerdown','keydown'])document.addEventListener(evento,adiarRetorno);
 function grade(){
- const turno=turnoHora(horaAtual());
- el('#turno').textContent=['Manhã','Tarde','Noite'][turno];
+ const turno=escolha??turnoHora(horaAtual());
+ for(const b of el('#turnos').querySelectorAll('button'))b.setAttribute('aria-pressed',String(Number(b.dataset.turno)===turno));
  const lista=(dados?.dia===diaAtual()?dados.aulas:[]).filter(a=>turnoHora(a.inicio)===turno);
  const porPagina=4+(window.innerHeight>=700?1:0);
  const total=Math.max(1,Math.ceil(lista.length/porPagina));pagina%=total;
@@ -32,12 +44,31 @@ function grade(){
  el('#aulas').innerHTML=linhas.map(a=>'<tr><td>'+h(a.turma)+'</td><td>'+h(a.sala)+'</td><td>'+h(a.docente)+'</td><td>'+h(a.inicio.slice(0,5))+'–'+h(a.fim.slice(0,5))+'</td></tr>').join('')||(dados?'<tr><td colspan="4">Sem aulas neste turno.</td></tr>':'');
 }
 function faixa(){
- const itens=[...(dados?.itens||[]).filter(x=>x.tipo==='noticia'),...(dados?.avisos||[]).filter(x=>x.tipo==='Vídeo')];
+ const itens=(dados?.itens||[]).filter(x=>x.tipo==='noticia');
  indice%=Math.max(1,itens.length);
  const x=itens[indice];const chave=JSON.stringify([x,itens.length,indice]);if(chave===assinatura)return;
  assinatura=chave;clearTimeout(temporizador);
  el('#noticia').innerHTML=(x?midia(x):'')+'<div class="copy"><small>'+(x?.video?'Vídeo da unidade':'Notícias da unidade')+'</small><span class="regua"></span><strong>'+h(x?.titulo||'Sem notícias em exibição')+'</strong>'+(itens.length>1?'<small>'+(indice+1)+' / '+itens.length+'</small>':'')+'</div>';
  if(itens.length>1)temporizador=setTimeout(()=>{indice++;faixa();},x?.video?30000:12000);
+}
+let listaVideos=[], chaveVideo=null, idVideo=null, tentativa;
+function atualizarVideos(){
+ listaVideos=(dados?.avisos||[]).filter(a=>a.tipo==='Vídeo'&&a.video);
+ const i=Math.max(0,listaVideos.findIndex(a=>a.id===idVideo));
+ mostrarVideo(i);
+}
+function mostrarVideo(i,forcar=false){
+ const a=listaVideos[i];
+ const chave=JSON.stringify(a||null);
+ if(!forcar&&chave===chaveVideo)return;
+ clearTimeout(tentativa);chaveVideo=chave;idVideo=a?.id;
+ const box=el('#reel');
+ if(!a){box.innerHTML='<p>Nenhum vídeo em exibição.</p>';return;}
+ box.innerHTML=midia(a).replace(' loop ',' ')+'<strong>'+h(a.titulo)+'</strong>';
+ const player=box.querySelector('video');
+ const seguinte=()=>mostrarVideo((listaVideos.findIndex(v=>v.id===idVideo)+1)%listaVideos.length,true);
+ player.onended=()=>{if(listaVideos.length===1)player.play().catch(()=>{});else seguinte();};
+ player.onerror=()=>{box.innerHTML='<p>Vídeo indisponível no momento.</p>';tentativa=setTimeout(seguinte,12000);};
 }
 function ofertas(){
  const cursos=(dados?.avisos||[]).filter(x=>x.tipo==='Curso');
@@ -50,8 +81,8 @@ function ofertas(){
 }
 async function atualizar(){
  if(ocupado)return;ocupado=true;
- try{dados=await pedido('totem');grade();faixa();ofertas();el('#horarios').innerHTML=['secretaria','biblioteca'].map(k=>'<div><b>'+h(k[0].toUpperCase()+k.slice(1))+'</b><p>'+h(dados.horarios[k])+'</p></div>').join('');el('#status').textContent='';}
- catch{if(dados?.dia!==diaAtual()){dados=null;grade();ofertas();faixa();}el('#status').textContent='Conexão indisponível · aguardando atualização.';}finally{ocupado=false;}
+ try{dados=await pedido('totem');grade();faixa();atualizarVideos();ofertas();el('#horarios').innerHTML=['secretaria','biblioteca'].map(k=>'<div><b>'+h(k[0].toUpperCase()+k.slice(1))+'</b><p>'+h(dados.horarios[k])+'</p></div>').join('');el('#status').textContent='';}
+ catch{if(dados?.dia!==diaAtual()){dados=null;grade();ofertas();faixa();atualizarVideos();}el('#status').textContent='Conexão indisponível · aguardando atualização.';}finally{ocupado=false;}
 }
 el('#inscrever').onclick=()=>{if(oficinaAtual)detalhe(oficinaAtual);};
 let espera;
