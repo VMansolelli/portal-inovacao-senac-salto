@@ -19,7 +19,7 @@ function detalhe(x){
 }
 function relogio(){
  el('#clock').textContent=horaAtual();
- el('#dia').textContent=new Intl.DateTimeFormat('pt-BR',{weekday:'long',day:'numeric',month:'long',timeZone:'America/Sao_Paulo'}).format(new Date());
+ el('#dia').textContent=new Intl.DateTimeFormat('pt-BR',{weekday:'long',day:'numeric',month:'long',year:'numeric',timeZone:'America/Sao_Paulo'}).format(new Date());
 }
 let escolha=null, retorno;
 function voltarAoAtual(){escolha=null;pagina=0;grade();}
@@ -37,18 +37,21 @@ function grade(){
  const turno=escolha??turnoHora(horaAtual());
  for(const b of el('#turnos').querySelectorAll('button'))b.setAttribute('aria-pressed',String(Number(b.dataset.turno)===turno));
  const lista=(dados?.dia===diaAtual()?dados.aulas:[]).filter(a=>turnoHora(a.inicio)===turno);
- const porPagina=4+(window.innerHeight>=700?1:0);
+ const porPagina=20;
  const total=Math.max(1,Math.ceil(lista.length/porPagina));pagina%=total;
  el('#pagina').textContent=total>1?(pagina+1)+' de '+total:'';
  const linhas=lista.slice(pagina*porPagina,(pagina+1)*porPagina);
  el('#aulas').innerHTML=linhas.map(a=>'<tr><td>'+h(a.turma)+'</td><td>'+h(a.sala)+'</td><td>'+h(a.docente)+'</td><td>'+h(a.inicio.slice(0,5))+'–'+h(a.fim.slice(0,5))+'</td></tr>').join('')||(dados?'<tr><td colspan="4">Sem aulas neste turno.</td></tr>':'');
+ const corpo=el('#aulas');
+ while(corpo.rows.length<20){const linha=corpo.insertRow();linha.setAttribute('aria-hidden','true');for(let i=0;i<4;i++)linha.insertCell();}
+
 }
 function faixa(){
  const itens=(dados?.itens||[]).filter(x=>x.tipo==='noticia');
  indice%=Math.max(1,itens.length);
  const x=itens[indice];const chave=JSON.stringify([x,itens.length,indice]);if(chave===assinatura)return;
  assinatura=chave;clearTimeout(temporizador);
- el('#noticia').innerHTML=(x?midia(x):'')+'<div class="copy"><small>'+(x?.video?'Vídeo da unidade':'Notícias da unidade')+'</small><span class="regua"></span><strong>'+h(x?.titulo||'Sem notícias em exibição')+'</strong>'+(itens.length>1?'<small>'+(indice+1)+' / '+itens.length+'</small>':'')+'</div>';
+ el('#noticia').innerHTML=(x?midia(x):'')+'<div class="copy"><small>'+(x?.video?'Vídeo da unidade':'Notícias da unidade')+'</small><span class="regua"></span><strong>'+h(x?.titulo||'Sem notícias em exibição')+'</strong>'+(x?.descricao?'<p>'+h(x.descricao)+'</p>':'')+(itens.length>1?'<small>'+(indice+1)+' / '+itens.length+'</small>':'')+'</div>';
  if(itens.length>1)temporizador=setTimeout(()=>{indice++;faixa();},x?.video?30000:12000);
 }
 let listaVideos=[], chaveVideo=null, idVideo=null, tentativa;
@@ -74,7 +77,15 @@ function ofertas(){
  const cursos=(dados?.avisos||[]).filter(x=>x.tipo==='Curso');
  const oficinas=(dados?.itens||[]).filter(x=>x.tipo==='oficina');
  oficinaAtual=oficinas[oportunidade%oficinas.length];
- el('#curso').textContent=cursos[oportunidade%cursos.length]?.titulo||'Sem divulgação no momento';
+ const curso=cursos[oportunidade%cursos.length];
+ el('#curso').textContent=curso?.titulo||'Sem divulgação no momento';
+ const foto=el('#imagem-curso');
+ if(foto.dataset.origem!==(curso?.imagem_curso||'')){
+   foto.dataset.origem=curso?.imagem_curso||'';foto.hidden=!curso?.imagem_curso;
+   if(curso?.imagem_curso){foto.onerror=()=>{foto.hidden=true;};foto.src=curso.imagem_curso;}else foto.removeAttribute('src');
+ }
+ el('#convite-curso').hidden=!desenharQR(el('#qr-curso'),curso?.inscricao_url);
+ el('#avaliacao').hidden=!desenharQR(el('#qr-avaliacao'),dados?.horarios?.avaliacao);
  el('#oficina').textContent=oficinaAtual?.titulo||'Sem oficina no momento';
  el('#inscrever').hidden=!oficinaAtual;
  el('#inscrever').textContent=oficinaAtual&&Number(oficinaAtual.vagas)>oficinaAtual.inscritos?'Inscreva-se →':'Ver oficina →';

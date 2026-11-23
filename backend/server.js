@@ -134,16 +134,27 @@ export function createPortal(config, remote = fetch) {
           insist(signed.searchParams.has('token'),'Falha ao autorizar envio.',503);
           return reply(200,{arquivo,url:new URL('/storage/v1'+path+signed.search,base).href});
         }
+        function linkOpcional(campo){
+          if(b[campo]===undefined)return undefined;
+          const valor=b[campo];
+          if(valor==='')return '';
+          insist(typeof valor==='string'&&valor.length<=1024&&URL.canParse(valor),'Confira o link informado.');
+          const url=new URL(valor);
+          insist(url.protocol==='https:'&&!url.username&&!url.password&&url.href.length<=1024,'Use um link HTTPS.');
+          return url.href;
+        }
         let d;
         if(acao==='aviso'){
           d=fields(b,['tipo','titulo','inicio','fim'],['id','descricao','arquivo']);
           insist(['Curso','Ação','Vídeo'].includes(d.tipo)&&day(d.inicio)<=day(d.fim),'Confira tipo e período.');
+          d.imagem_curso=d.tipo==='Curso'?linkOpcional('imagem_curso'):'';
+          d.inscricao_url=d.tipo==='Curso'?linkOpcional('inscricao_url'):'';
           d.legenda=d.tipo==='Vídeo'?String(b.legenda||''):'';
           insist(!d.legenda||(d.legenda.length<=60000&&d.legenda.startsWith('WEBVTT')),'Use legenda WebVTT de até 60 mil caracteres.');
           if(d.tipo==='Vídeo')insist(/^[a-f0-9]{32}[.](mp4|webm)$/.test(d.arquivo),'Anexe o vídeo.');else d.arquivo=null;
         }else if(acao==='visibilidade'){d=fields(b,['id']);insist(typeof b.oculto==='boolean','Visibilidade inválida.');d.oculto=b.oculto;}
         else if(acao==='excluir')d=fields(b,['id']);
-        else if(acao==='horarios')d=fields(b,['secretaria','biblioteca']);
+        else if(acao==='horarios')d={...fields(b,['secretaria','biblioteca']),avaliacao:linkOpcional('avaliacao')};
         else insist(false,'Página não encontrada.',404);
         return reply(200,await rpc(acao,d,'totem_api'));
       }
