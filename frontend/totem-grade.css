@@ -7,3 +7,36 @@ dialog{width:min(92vw,32rem);max-height:90dvh;overflow:auto;padding:1.1rem;borde
 #turnos{display:flex;gap:.2rem}#turnos button{background:white;color:var(--azul);border:1px solid var(--linha);border-radius:.4rem;padding:.35rem .5rem;min-height:44px;font-weight:650}#turnos button[aria-pressed=true]{background:var(--azul);color:white;border-color:var(--azul)}
 .midias{display:grid;grid-template-columns:minmax(0,1.85fr) minmax(0,1fr);gap:.5rem;min-height:0}.midias>#noticia{min-width:0}.midias #noticia .copy{padding:.6rem;gap:.4rem}.midias #noticia strong{font-size:1.28rem}.reels{min-height:0;background:#eef3f8;color:var(--azul);display:flex;flex-direction:column;padding:.4rem .5rem;gap:.2rem}.reels h2{font-size:.9rem}#reel{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center;gap:.15rem}#reel video{width:100%;min-height:0;flex:1;object-fit:contain;background:#102a42}#reel strong{font-size:.8rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#reel p{font-size:.85rem}
 @media(max-width:460px){.titulo h1{font-size:1.65rem}#turnos button{padding:.25rem .32rem}main{grid-template-rows:9fr 38fr 25fr 13fr 15fr}}
+
+/* TV vertical: a janela do vídeo acompanha a proporção da tela,
+   mesmo quando o sistema ajusta a escala dos pixels do navegador. */
+@media (orientation:portrait) and (min-aspect-ratio:1/2) and (max-aspect-ratio:2/3) {
+ :root{font-size:clamp(12px,min(2.02vw,1.14vh),60px)}
+ main{width:100%;max-width:none;grid-template-rows:7% 27% 50% 8% 8%}
+ header,.grade,.oportunidades,footer{padding-inline:2.4vw}
+ header{padding-block:.35rem}
+ .grade{padding-block:.35rem}
+ .titulo h1{font-size:2.25rem}
+ .titulo{min-height:fit-content}
+ .grade table{flex:1}
+ .grade td{font-size:1.05rem;line-height:1.12;padding:.2rem .18rem}
+ .grade td:last-child{font-size:.92rem}
+ .midias{container-type:size;grid-template-columns:minmax(0,1fr) auto;gap:1.25vw;padding:0 2.4vw}
+ .reels{padding:0;gap:0;background:white;justify-content:center;align-items:stretch;width:min(45vw,calc((100cqh - 3.1rem)*.5625))}
+ .reels h2{font-size:.88rem;line-height:1.25;padding:0 0 .25rem}
+ #reel{flex:none;display:grid;gap:0;justify-content:stretch}
+ #reel video{display:block;width:100%;height:auto;aspect-ratio:9/16;object-fit:contain;border-radius:.3rem;background:#071a2b}
+ #reel strong{line-height:1.18;font-size:.86rem;padding-top:.28rem}
+ .midias #noticia{flex-direction:column;border-radius:.3rem;min-height:0}
+ .midias #noticia img{width:100%;height:56%;object-fit:cover}
+ .midias #noticia .copy{justify-content:center;gap:.6rem;padding:1.05rem;min-height:0}
+ .midias #noticia strong{font-size:1.68rem;line-height:1.12;-webkit-line-clamp:5}
+ .oportunidades{padding-block:.25rem}
+ .oportunidades strong{font-size:1.04rem}
+ footer{padding-block:.35rem}
+ footer h2{margin-bottom:.18rem;font-size:1.08rem}
+ footer p{margin-top:.1rem;font-size:.8rem}
+}
+@media (orientation:portrait) and (min-aspect-ratio:1/2) and (max-aspect-ratio:2/3){
+ .reels:has(#reel p){background:#f0f4f8;border-radius:.3rem;padding:1rem}
+}
