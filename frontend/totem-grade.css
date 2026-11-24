@@ -3,7 +3,7 @@
 header,.marca,.data,.titulo,#turnos,.convite{display:flex;align-items:center;gap:.5rem}header,.titulo{justify-content:space-between}.marca img{width:5rem;max-height:5.5vh;object-fit:contain}.marca b,.data time{color:var(--azul);border-left:2px solid var(--linha);padding-left:.55rem}.data span{max-width:10rem;text-align:right;font-size:.84rem}.data time{font-size:2rem;font-weight:bold;border-color:var(--laranja)}
 h1,h2,p{margin:0}.grade{min-width:0}.titulo{color:var(--azul);padding-bottom:.3rem}.titulo h1{font-size:1.8rem;letter-spacing:-.04em}.titulo>div{text-align:right}#pagina:empty{display:none}#pagina{font-size:.7rem}button,input{font:inherit}button{cursor:pointer}#turnos{gap:.16rem}#turnos button{color:var(--azul);background:white;border:1px solid var(--linha);border-radius:.35rem;min-height:40px;padding:.28rem .45rem}#turnos button[aria-pressed=true]{color:white;background:var(--azul)}
 table{width:100%;border-collapse:collapse;table-layout:fixed}td,th{text-align:left;padding:.08vh .2rem;border-bottom:1px solid var(--linha);font-size:clamp(9px,min(1.76vw,1.02vh),42px);line-height:1.15;overflow-wrap:anywhere}td:nth-child(2){color:var(--azul);font-weight:bold}td,th{height:1.58vh}#status{font-size:.68rem}
-.midias{container-type:size;display:grid;grid-template-columns:9fr 9fr 8fr;gap:1.1vw;align-items:center;min-height:0}.midias>*{min-width:0}
+.midias{container-type:size;display:grid;grid-template-columns:minmax(0,9fr) minmax(0,9fr) minmax(0,8fr);grid-template-rows:minmax(0,1fr);gap:1.1vw;align-items:center;min-height:0}.midias>*{min-width:0}
 #reel,.cartao-curso{max-height:100cqh;width:100%;aspect-ratio:9/16;position:relative;overflow:hidden;border-radius:.65rem}
 #reel video{width:100%;height:100%;display:block;object-fit:contain;border-radius:inherit}#reel p{color:#607484;font-size:.82rem;text-align:center}
 .cartao-curso{background:#eaf1f8;justify-self:center}.cartao-curso>img,.oficinas>img{width:100%;height:100%;object-fit:cover}
@@ -31,7 +31,12 @@ dialog img{display:block;max-width:100%;max-height:30vh;object-fit:contain}
 [hidden]{display:none!important}
 
 main{grid-template-rows:6.5% auto minmax(0,1fr) minmax(10%,.36fr) auto}
-.quadrados{max-height:100%;height:min(100%,64vw);grid-template-rows:1.35fr 1fr 1fr}
+/* O vídeo usa 9 partes de largura para 16 de altura. A lateral usa 8 para as mesmas 16. */
+.quadrados{width:min(100%,50cqh);height:auto;aspect-ratio:8/16;contain:size;min-height:0;align-self:center;justify-self:center;grid-template-rows:minmax(0,1.35fr) repeat(2,minmax(0,1fr))}
+.quadrados .avaliacao button{padding:.12rem .25rem;gap:.08rem}
+.quadrados #abrir-avaliacao img{max-height:19%;width:auto}
+.quadrados .oficina-copy{width:100%}
+.quadrados #qr-instagram,.quadrados #qr-avaliacao{min-height:0}
 .quadrados section{width:100%;height:100%;min-height:0;aspect-ratio:auto}
 #abrir-instagram,#face-instagram{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.12rem}
 #abrir-instagram{background:#e9f3fc;color:#00365e;border:0;border-bottom:.16rem solid #ee9020}
