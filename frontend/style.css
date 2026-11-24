@@ -2079,3 +2079,28 @@ footer button.navlink {
   color: #833c36;
   border-color: #dbc7c4;
 }
+/* Acrescente este bloco ao final de frontend/style.css. */
+#muralGrid {
+  align-items: start;
+}
+#muralGrid > .ncard:first-child {
+  grid-column: auto;
+  grid-row: auto;
+}
+#muralGrid > .ncard > img {
+  height: auto;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+}
+#muralGrid > .ncard h4 {
+  font-size: 18px;
+}
+#muralGrid .ncard-body {
+  flex: 0 1 auto;
+}
+#muralGrid .meta {
+  margin-top: 4px;
+}
+#muralGrid .meta:empty {
+  display: none;
+}
