@@ -76,7 +76,7 @@ let chaveCentro=null, tempoCentro, indiceCentro=0;
 function centro(){
  const avisos=dados?.avisos||[];
  const cursos=avisos.filter(a=>a.tipo==='Curso'&&a.imagem_curso);
- const reels=avisos.filter(a=>a.tipo==='Reel'&&(a.video||/^https:\/\/www\.instagram\.com\/reel\/[A-Za-z0-9_-]+\/$/.test(a.instagram_reel)));
+ const reels=avisos.filter(a=>a.tipo==='Reel'&&a.video);
  const fila=[];
  for(let i=0;i<Math.max(cursos.length,reels.length);i++){
    if(cursos[i])fila.push(cursos[i]);if(reels[i])fila.push(reels[i]);
@@ -91,9 +91,19 @@ function centro(){
  if(item.tipo==='Curso'){
    box.innerHTML='<img alt="" src="'+h(item.imagem_curso)+'"><div class="curso-copy"><small>Cursos Senac Salto</small><strong>'+h(item.titulo)+'</strong><div class="convite"><span>Inscreva-se</span><div class="codigo"></div></div></div>';
    box.querySelector('.convite').hidden=!desenharQR(box.querySelector('.codigo'),item.inscricao_url);
- }else if(item.video){box.innerHTML=midia(item);}
- else{box.innerHTML='<iframe title="Reel do Senac Salto" src="'+h(item.instagram_reel)+'embed/" allow="autoplay; encrypted-media; fullscreen" referrerpolicy="strict-origin-when-cross-origin"></iframe>';}
- if(fila.length>1)tempoCentro=setTimeout(()=>{indiceCentro++;centro();},item.tipo==='Curso'?15000:30000);
+   if(fila.length>1)tempoCentro=setTimeout(avancar,(Number(item.segundos)||15)*1000);
+ }else{
+   box.innerHTML=midia(item).replace(' loop ',' ')+'<button class="controle-reel" type="button">Reproduzir</button>';
+   const player=box.querySelector('video'),botao=box.querySelector('button');
+   player.disablePictureInPicture=true;
+   player.oncontextmenu=e=>e.preventDefault();
+   const rotulo=()=>{botao.textContent=player.paused?'Reproduzir':'Pausar';};
+   botao.onclick=()=>{if(player.paused)player.play().catch(rotulo);else player.pause();};
+   player.onplay=player.onpause=rotulo;rotulo();
+   player.onended=()=>{if(fila.length>1)avancar();else player.play().catch(rotulo);};
+   player.onerror=()=>{box.textContent='Vídeo indisponível.';tempoCentro=setTimeout(avancar,5000);};
+ }
+ function avancar(){indiceCentro++;chaveCentro=null;centro();}
 }
 function ofertas(){
  centro();
@@ -112,7 +122,8 @@ function ofertas(){
 }
 async function atualizar(){
  if(ocupado)return;ocupado=true;
- try{dados=await pedido('totem');grade();faixa();atualizarVideos();ofertas();el('#horarios').innerHTML=['secretaria','biblioteca'].map(k=>'<div><b>'+h(k[0].toUpperCase()+k.slice(1))+'</b><p>'+h(dados.horarios[k])+'</p></div>').join('');el('#status').textContent='';}
+ try{dados=await pedido('totem');grade();faixa();atualizarVideos();ofertas();const locais=dados.horarios.ambientes||[{nome:'Secretaria',horario:dados.horarios.secretaria},{nome:'Biblioteca',horario:dados.horarios.biblioteca}];
+ el('#horarios').innerHTML=locais.map(local=>'<div><b>'+h(local.nome)+'</b><p>'+h(local.horario)+'</p>'+(local.telefone?'<p>Tel. '+h(local.telefone)+'</p>':'')+'</div>').join('');el('#status').textContent='';}
  catch{if(dados?.dia!==diaAtual()){dados=null;grade();ofertas();faixa();atualizarVideos();}el('#status').textContent='Conexão indisponível · aguardando atualização.';}finally{ocupado=false;}
 }
 let giroOficinas;
@@ -137,15 +148,16 @@ for(const tipo of ['noticia','oficina']){
    if(botao)navegar(tipo,Number(botao.dataset.passo));
  };
 }
-let retornoAvaliacao;
-function exibirAvaliacao(aberta){
- clearTimeout(retornoAvaliacao);
- el('#face-qr').hidden=!aberta;
- const botao=el('#abrir-avaliacao');
- botao.hidden=aberta;botao.setAttribute('aria-expanded',String(aberta));
- if(aberta)retornoAvaliacao=setTimeout(()=>exibirAvaliacao(false),20000);
+function configurarCartao(botaoId,faceId){
+ const botao=el(botaoId),face=el(faceId);
+ botao.onclick=()=>{
+   botao.hidden=true;face.hidden=false;botao.setAttribute('aria-expanded','true');
+   setTimeout(()=>{face.hidden=true;botao.hidden=false;botao.setAttribute('aria-expanded','false');},20000);
+ };
 }
-el('#abrir-avaliacao').onclick=()=>exibirAvaliacao(true);
+desenharQR(el('#qr-instagram'),'https://www.instagram.com/senacsalto/');
+configurarCartao('#abrir-instagram','#face-instagram');
+configurarCartao('#abrir-avaliacao','#face-qr');
 el('#inscrever').onclick=()=>{if(oficinaAtual)detalhe(oficinaAtual);};
 let espera;
 function limparDepois(){clearTimeout(espera);if(el('#detalhe').open)espera=setTimeout(()=>el('#detalhe').close(),60000);}

@@ -105,7 +105,7 @@ export function createPortal(config, remote = fetch) {
         }
         if(op==='mapa/perfil')return reply(200,{master:staff.id===masterId,hoje:today()});
         if(mapRequest && ['catalogo','recessos','master/lista'].includes(action))return reply(200,await mapRpc(action,{}));
-        if(op==='totem/versao')return reply(200,{versao:'midias-2',reelPorLink:true});
+        if(op==='totem/versao')return reply(200,{versao:'midias-3',reelPorLink:false});
         if(op==='versao')return reply(200,{versao:'painel-3',recuperacao:'link e chave de reserva',mapa:'mapa-1',salas:(await mapRpc('salas',{})).length});
         if(op==='admin/perfil')return reply(200,{master:staff.id===masterId});
         if(op==='master/lista')return reply(200,await rpc(op));
@@ -160,12 +160,22 @@ export function createPortal(config, remote = fetch) {
           d.inscricao_url=d.tipo==='Curso'?linkOpcional('inscricao_url'):'';
           d.legenda=d.tipo==='Vídeo'?String(b.legenda||''):'';
           insist(!d.legenda||(d.legenda.length<=60000&&d.legenda.startsWith('WEBVTT')),'Use legenda WebVTT de até 60 mil caracteres.');
-          if(d.tipo==='Reel')insist(d.instagram_reel||d.arquivo,'Cole o link do Reel ou anexe o vídeo.');
+          if(d.tipo==='Reel')insist(d.arquivo,'Anexe o vídeo do Reel para reproduzir no totem.');
+          if(d.tipo==='Curso' && b.segundos!==undefined){d.segundos=Number(b.segundos);insist(Number.isInteger(d.segundos)&&d.segundos>=1&&d.segundos<=3600,'Informe entre 1 e 3600 segundos.');}
           if(d.tipo==='Curso')insist(d.imagem_curso,'Anexe a imagem do curso ou informe o endereço dela.');
           if(d.tipo==='Vídeo'||(d.tipo==='Reel'&&d.arquivo))insist(/^[a-f0-9]{32}[.](mp4|webm)$/.test(d.arquivo),'Anexe o vídeo.');else d.arquivo=null;
         }else if(acao==='visibilidade'){d=fields(b,['id']);insist(typeof b.oculto==='boolean','Visibilidade inválida.');d.oculto=b.oculto;}
         else if(acao==='excluir')d=fields(b,['id']);
-        else if(acao==='horarios')d={...fields(b,['secretaria','biblioteca']),avaliacao:linkOpcional('avaliacao')};
+        else if(acao==='horarios'){
+          d={avaliacao:linkOpcional('avaliacao')};
+          if(Array.isArray(b.ambientes)){
+            insist(b.ambientes.length<=4,'Preencha até quatro ambientes.');
+            d.ambientes=b.ambientes.map(item=>fields(item,['nome','horario'],['telefone']));
+          }else{
+            const anterior=fields(b,['secretaria','biblioteca']);
+            Object.assign(d,anterior);
+          }
+        }
         else insist(false,'Página não encontrada.',404);
         return reply(200,await rpc(acao,d,'totem_api'));
       }
