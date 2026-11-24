@@ -49,7 +49,8 @@ function faixa(){
  indice%=Math.max(1,itens.length);
  const x=itens[indice];const chave=JSON.stringify([x,itens.length,indice]);if(chave===assinatura)return;
  assinatura=chave;clearTimeout(temporizador);
- el('#noticia').innerHTML=(x?midia(x):'')+'<div class="copy"><small>'+(x?.video?'Vídeo da unidade':'Notícias da unidade')+'</small><span class="regua"></span><strong>'+h(x?.titulo||'Sem notícias em exibição')+'</strong>'+(x?.descricao?'<p>'+h(x.descricao)+'</p>':'')+(itens.length>1?'<small>'+(indice+1)+' / '+itens.length+'</small>':'')+'</div>';
+ el('#noticia-setas').hidden=itens.length<2;
+ el('#noticia-corpo').innerHTML=(x?midia(x):'')+'<div class="copy"><small>'+(x?.video?'Vídeo da unidade':'Notícias da unidade')+'</small><span class="regua"></span><strong>'+h(x?.titulo||'Sem notícias em exibição')+'</strong>'+(x?.descricao?'<p>'+h(x.descricao)+'</p>':'')+(itens.length>1?'<small>'+(indice+1)+' / '+itens.length+'</small>':'')+'</div>';
  if(itens.length>1)temporizador=setTimeout(()=>{indice++;faixa();},x?.video?30000:12000);
 }
 let listaVideos=[], chaveVideo=null, idVideo=null, tentativa;
@@ -97,6 +98,7 @@ function centro(){
 function ofertas(){
  centro();
  const oficinas=(dados?.itens||[]).filter(x=>x.tipo==='oficina');
+ el('#oficina-setas').hidden=oficinas.length<2;
  oficinaAtual=oficinas[oportunidade%oficinas.length];
  el('#avaliacao').hidden=!desenharQR(el('#qr-avaliacao'),dados?.horarios?.avaliacao);
  const capa=el('#oficina-foto');
@@ -113,10 +115,41 @@ async function atualizar(){
  try{dados=await pedido('totem');grade();faixa();atualizarVideos();ofertas();el('#horarios').innerHTML=['secretaria','biblioteca'].map(k=>'<div><b>'+h(k[0].toUpperCase()+k.slice(1))+'</b><p>'+h(dados.horarios[k])+'</p></div>').join('');el('#status').textContent='';}
  catch{if(dados?.dia!==diaAtual()){dados=null;grade();ofertas();faixa();atualizarVideos();}el('#status').textContent='Conexão indisponível · aguardando atualização.';}finally{ocupado=false;}
 }
+let giroOficinas;
+function programarOficinas(){
+ clearTimeout(giroOficinas);
+ giroOficinas=setTimeout(()=>{oportunidade++;ofertas();programarOficinas();},15000);
+}
+function navegar(tipo,passo){
+ const total=(dados?.itens||[]).filter(x=>x.tipo===tipo).length;
+ if(total<2)return;
+ if(tipo==='oficina'){
+   oportunidade=(oportunidade+passo+total)%total;
+   ofertas();programarOficinas();
+ }else{
+   indice=(indice+passo+total)%total;
+   faixa();
+ }
+}
+for(const tipo of ['noticia','oficina']){
+ el('#'+tipo+'-setas').onclick=e=>{
+   const botao=e.target.closest('[data-passo]');
+   if(botao)navegar(tipo,Number(botao.dataset.passo));
+ };
+}
+let retornoAvaliacao;
+function exibirAvaliacao(aberta){
+ clearTimeout(retornoAvaliacao);
+ el('#face-qr').hidden=!aberta;
+ const botao=el('#abrir-avaliacao');
+ botao.hidden=aberta;botao.setAttribute('aria-expanded',String(aberta));
+ if(aberta)retornoAvaliacao=setTimeout(()=>exibirAvaliacao(false),20000);
+}
+el('#abrir-avaliacao').onclick=()=>exibirAvaliacao(true);
 el('#inscrever').onclick=()=>{if(oficinaAtual)detalhe(oficinaAtual);};
 let espera;
 function limparDepois(){clearTimeout(espera);if(el('#detalhe').open)espera=setTimeout(()=>el('#detalhe').close(),60000);}
 el('.fechar').onclick=()=>el('#detalhe').close();
 el('#detalhe').onclose=()=>{clearTimeout(espera);el('#detalheBody').replaceChildren();};
 for(const ev of ['click','input','keydown'])document.addEventListener(ev,limparDepois);
-relogio();grade();atualizar();setInterval(atualizar,30000);setInterval(()=>{relogio();pagina++;grade();oportunidade++;ofertas();},15000);
+relogio();grade();atualizar();setInterval(atualizar,30000);setInterval(()=>{relogio();pagina++;grade();},15000);programarOficinas();

@@ -20,3 +20,12 @@ dialog img{display:block;max-width:100%;max-height:30vh;object-fit:contain}
 #ver-reel{border:1px solid white;background:transparent;color:white;border-radius:.25rem;margin-top:.2rem;padding:.2rem .45rem}
 
 #centro>video,#centro>iframe{width:100%;height:100%;display:block;object-fit:contain;border:0}
+
+.setas{display:flex;gap:.18rem}.setas button{display:grid;place-content:center;width:max(42px,1.6rem);height:max(42px,1.6rem);padding:0;border:1px solid #c7deef;border-radius:50%;background:#00365e;color:white;font-size:1.5rem;line-height:1}
+#oficina-setas{position:absolute;top:.2rem;right:.2rem;z-index:2}
+#noticia-corpo{display:flex;flex:1;min-width:0}#noticia-setas{align-self:center;flex-direction:column;margin-right:.3rem}
+#abrir-avaliacao,#face-qr{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.25rem}
+#abrir-avaliacao{padding:.4rem;border:0;color:#00365e;background:linear-gradient(145deg,#fff 45%,#e5f3fb);border-bottom:.16rem solid #ee9020}
+#abrir-avaliacao img{width:30%;max-height:22%;object-fit:contain}.estrelas{color:#a95700;letter-spacing:.07em}.chamada{background:#004a8d;color:white;font-weight:bold;padding:.2rem .45rem;border-radius:1rem;font-size:.74rem}
+#face-qr{padding:.18rem}#face-qr #qr-avaliacao{height:68%}
+[hidden]{display:none!important}
