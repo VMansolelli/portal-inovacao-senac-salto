@@ -8,7 +8,7 @@ const btn = (label,action,id='')=>`<button type="button" class="btn btn-orange b
 const field = (key,label,type='text',required=true)=>`<div><label for="f-${key}">${label}${required?' *':''}</label>${type==='textarea'?`<textarea id="f-${key}" name="${key}" maxlength="5000" required></textarea>`:`<input id="f-${key}" name="${key}" type="${type}" ${type==='file'?'accept="image/jpeg,image/png,image/gif,image/webp"':'maxlength="254"'} ${required?'required':''}>`}</div>`;
 const photoVersions=new Map();
 function photoURL(row){
-  const version=photoVersions.get(row.id);
+  const version=row.capa_versao||photoVersions.get(row.id);
   return version && row.foto ? row.foto+'?v='+version : row.foto;
 }
 const picture = row => row.foto?`<img src="${esc(photoURL(row))}" alt="" loading="lazy" style="width:100%;max-height:240px;object-fit:cover;border-radius:12px">`:'';
@@ -120,6 +120,21 @@ async function workshop(row){
   const box=editor(row?'Editar oficina':'Nova oficina',wkForm,row?null:button);
   if(!box)return;
   const form=box.form, local=form.elements.local, vagas=form.elements.vagas;
+  if(row){
+    const input=form.elements.imagem;
+    const preview=document.createElement('img');
+    preview.alt='Capa da oficina';preview.style.cssText='width:100%;max-height:160px;object-fit:contain';
+    const atual=photoURL(row);
+    function mostrar(src){preview.hidden=!src;if(src)preview.src=src;else preview.removeAttribute('src');}
+    input.before(preview);mostrar(atual);
+    input.onchange=()=>{
+      const file=input.files[0];
+      if(!file){mostrar(atual);return;}
+      const reader=new FileReader();
+      reader.onload=()=>{if(input.files[0]===file)mostrar(reader.result);};
+      reader.readAsDataURL(file);
+    };
+  }
   local.replaceChildren(new Option('Carregando salas…',''));local.disabled=true;
   const submit=$('[type=submit]',form);submit.disabled=true;
   let salas;
@@ -143,6 +158,16 @@ async function workshop(row){
     if(data.termino<=data.inicio)throw Error('O término deve ser depois do início.');
     if(data.imagem?.size)data.imagem=await jpeg(data.imagem);else delete data.imagem;
     await api(row?'admin/editar':'oficina',row?{...data,id:row.id}:data);
+    if(row && data.imagem){
+      photoVersions.set(row.id,Date.now());
+      const url=photoURL({id:row.id,foto:'/api/foto/'+encodeURIComponent(row.id)});
+      const response=await fetch(url,{cache:'no-store'});
+      if(!response.ok)throw Error('A oficina foi salva, mas não foi possível consultar a capa.');
+      const bytes=new Uint8Array(await response.arrayBuffer());
+      const expected=atob(data.imagem.split(',')[1]);
+      if(bytes.length!==expected.length||!bytes.every((value,i)=>value===expected.charCodeAt(i)))
+        throw Error('A oficina foi salva, mas o servidor devolveu outra imagem. Confira se a atualização da API e do banco foi publicada.');
+    }
     box.close();notify(row?'Oficina atualizada.':'Oficina enviada para aprovação.');
     if(row)await refreshBoth();
   });

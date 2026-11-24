@@ -115,7 +115,7 @@ export function createPortal(config, remote = fetch) {
         if(op.startsWith('foto/')){
           const src=await rpc(token && await admin(token)?'admin/foto':'foto',{id:op.slice(5)});
           insist(src,'Foto não encontrada.',404);
-          res.writeHead(200,{'Content-Type':'image/jpeg'});return res.end(Buffer.from(src.split(',')[1],'base64'));
+          res.writeHead(200,{'Content-Type':'image/jpeg','Cache-Control':'private, no-store'});return res.end(Buffer.from(src.split(',')[1],'base64'));
         }
       }
       insist(req.method==='POST','Página não encontrada.',404);
