@@ -2104,3 +2104,13 @@ footer button.navlink {
 #muralGrid .meta:empty {
   display: none;
 }
+
+/* Alinha o primeiro cartao de oficinas abaixo da navegacao fixa. */
+#saberesLista {
+  scroll-margin-top: 77px;
+}
+@media (max-width: 960px) {
+  #saberesLista {
+    scroll-margin-top: 85px;
+  }
+}
