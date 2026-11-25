@@ -24,7 +24,7 @@ async function carregar(){
    const local=locais[i]||{};
    return '<fieldset><legend>Ambiente '+(i+1)+'</legend>'+[['nome','Nome'],['horario','Horário de funcionamento'],['telefone','Telefone (opcional)']].map(([campo,label])=>'<label>'+label+'<input type="'+(campo==='telefone'?'tel':'text')+'" name="'+campo+i+'" maxlength="254" value="'+h(local[campo]||'')+'"></label>').join('')+'</fieldset>';
  }).join('');
- el('#avisos').innerHTML=estado.avisos.map(a=>'<article><div><strong>'+h(a.titulo)+'</strong><p>'+h(a.tipo)+(a.tipo==='Reel'&&!a.arquivo?' · Anexe o vídeo para exibir':'')+' · '+dataBR(a.inicio)+' – '+dataBR(a.fim)+'</p></div><button data-edit="'+h(a.id)+'">Editar</button><button data-del="'+h(a.id)+'">Excluir</button></article>').join('');
+ el('#avisos').innerHTML=estado.avisos.map(a=>'<article><div><strong>'+h(a.titulo)+'</strong><p>'+(a.tipo==='Reel'?'Centro · Vídeo da unidade':h(a.tipo))+(a.tipo==='Reel'&&!a.arquivo?' · Anexe o vídeo para exibir':'')+' · '+dataBR(a.inicio)+' – '+dataBR(a.fim)+'</p></div><button data-edit="'+h(a.id)+'">Editar</button><button data-del="'+h(a.id)+'">Excluir</button></article>').join('');
  el('#itens').innerHTML=estado.itens.map(x=>'<article><div><strong>'+h(x.titulo)+'</strong><p>'+h(tipoNome[x.tipo])+' · '+(x.oculto?'Oculto':'Visível')+'</p></div><button data-vis="'+h(x.id)+'">'+(x.oculto?'Mostrar':'Ocultar')+'</button></article>').join('');
 }
 async function salvar(op,d){await pedido('admin/totem/'+op,d);await carregar();mensagem('Alteração salva.');}
@@ -49,11 +49,17 @@ ed.onsubmit=async e=>{
  for(const c of ed.elements)c.disabled=true;
  try{
   if(d.fim<d.inicio)throw Error('Confira as datas da divulgação.');
+  const anterior=estado.avisos.find(a=>a.id===d.id);
+  d.descricao=anterior?.descricao||'';
+  if(d.tipo==='Curso'){
+   d.imagem_curso=anterior?.imagem_curso||'';
+   if(!file?.size&&!d.imagem_curso)throw Error('Anexe a imagem do curso.');
+  }
   if(file?.size){
    mensagem('Enviando arquivo…');const upload=await pedido('admin/totem/upload',{mime:file.type,bytes:file.size});
    const r=await fetch(upload.url,{method:'PUT',headers:{'Content-Type':file.type},body:file});
    if(!r.ok)throw Error('Envio interrompido. Selecione o arquivo e tente novamente.');
-   if(d.tipo==='Curso'){d.imagem_curso=upload.publica;ed.elements.imagem_curso.value=upload.publica;}else arquivo=upload.arquivo;
+   if(d.tipo==='Curso')d.imagem_curso=upload.publica;else arquivo=upload.arquivo;
   }
   if(d.tipo==='Vídeo'&&vtt.size){if(vtt.size>120000)throw Error('Legenda muito grande.');legenda=(await vtt.text()).replace(/^\uFEFF/,'');}
   await salvar('aviso',{...d,legenda,arquivo:['Vídeo','Reel'].includes(d.tipo)?arquivo:''});limpar();
@@ -63,7 +69,7 @@ document.addEventListener('click',async e=>{
  const b=e.target.closest('button[data-edit],button[data-del],button[data-vis]');if(!b||enviando)return;b.disabled=true;
  try{if(b.dataset.edit){
   const a=estado.avisos.find(x=>x.id===b.dataset.edit);ed.reset();
-  for(const k of ['id','tipo','titulo','descricao','inicio','fim','imagem_curso','inscricao_url'])ed.elements[k].value=a[k]||'';
+  for(const k of ['id','tipo','titulo','inicio','fim'])ed.elements[k].value=a[k]||'';
   ed.elements.segundos.value=a.segundos||15;
   legenda=a.legenda||'';el('#vttAtual').textContent=legenda?'Legenda anexada.':'';arquivo=a.arquivo||'';el('#existente').textContent=arquivo?'Vídeo já anexado. Selecione outro para trocar.':'';tipo();ed.elements.titulo.focus();
  }else if(b.dataset.del){if(confirm('Excluir esta divulgação do totem?'))await salvar('excluir',{id:b.dataset.del});}

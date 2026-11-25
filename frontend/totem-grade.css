@@ -42,7 +42,6 @@ main{grid-template-rows:6.5% auto minmax(0,1fr) minmax(10%,.36fr) auto}
 #abrir-instagram,#face-instagram{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.12rem}
 #abrir-instagram{background:#e9f3fc;color:#00365e;border:0;border-bottom:.16rem solid #ee9020}
 #qr-instagram{height:74%;max-width:95%}#qr-instagram svg{height:100%;max-width:100%}
-#centro .controle-reel{position:absolute;bottom:.35rem;right:.35rem;background:#00365e;color:white;border:1px solid white;border-radius:.4rem;padding:.27rem .5rem;min-height:42px}
 #horarios{grid-template-columns:repeat(2,minmax(0,1fr));gap:.3rem 1rem;padding:.15rem 0 .4rem;overflow-wrap:anywhere}
 
 .marca b{font-size:min(2.25rem,3.85vh);letter-spacing:-.045em;line-height:1;font-weight:750}

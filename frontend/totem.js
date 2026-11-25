@@ -94,14 +94,12 @@ function centro(){
    box.querySelector('.convite').hidden=!desenharQR(box.querySelector('.codigo'),item.inscricao_url);
    if(fila.length>1)tempoCentro=setTimeout(avancar,(Number(item.segundos)||15)*1000);
  }else{
-   box.innerHTML=midia(item).replace(' loop ',' ')+'<button class="controle-reel" type="button">Reproduzir</button>';
-   const player=box.querySelector('video'),botao=box.querySelector('button');
+   box.innerHTML=midia(item).replace(' loop ',' ');
+   const player=box.querySelector('video');
    player.disablePictureInPicture=true;
    player.oncontextmenu=e=>e.preventDefault();
-   const rotulo=()=>{botao.textContent=player.paused?'Reproduzir':'Pausar';};
-   botao.onclick=()=>{if(player.paused)player.play().catch(rotulo);else player.pause();};
-   player.onplay=player.onpause=rotulo;rotulo();
-   player.onended=()=>{if(fila.length>1)avancar();else player.play().catch(rotulo);};
+   player.loop=fila.length===1;
+   player.onended=avancar;
    player.onerror=()=>{box.textContent='Vídeo indisponível.';tempoCentro=setTimeout(avancar,5000);};
  }
  function avancar(){indiceCentro++;chaveCentro=null;centro();}
