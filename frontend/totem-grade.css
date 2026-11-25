@@ -44,7 +44,7 @@ main{grid-template-rows:6.5% auto minmax(0,1fr) minmax(10%,.36fr) auto}
 #centro .controle-reel{position:absolute;bottom:.35rem;right:.35rem;background:#00365e;color:white;border:1px solid white;border-radius:.4rem;padding:.27rem .5rem;min-height:42px}
 #horarios{grid-template-columns:repeat(2,minmax(0,1fr));gap:.3rem 1rem;padding:.15rem 0 .4rem;overflow-wrap:anywhere}
 
-.marca b{font-size:min(2.8rem,4.8vh);letter-spacing:-.045em;line-height:1;font-weight:750}
+.marca b{font-size:min(2.25rem,3.85vh);letter-spacing:-.045em;line-height:1;font-weight:750}
 .quadrados .oficina-copy{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:0 .24rem;padding:.22rem .3rem;background:#00365ef5}
 .oficina-copy small{grid-column:1;font-size:.56rem}.oficina-copy strong{grid-column:1;font-size:.86rem}
 .oficina-copy #inscrever{grid-column:2;grid-row:1 / 3;margin:0;padding:.17rem .24rem;font-size:.66rem}

@@ -76,3 +76,10 @@ function abrirSecao(){
 }
 window.addEventListener('hashchange',abrirSecao);abrirSecao();
 limpar();carregar().catch(e=>mensagem(e.message+' Acesse a Área restrita para entrar.'));
+
+if(document.documentElement.classList.contains('integrado')&&window.frameElement){
+ const main=document.querySelector('main');
+ const ajustarAltura=()=>{window.frameElement.style.height=Math.ceil(main.getBoundingClientRect().height+3)+'px';};
+ new ResizeObserver(ajustarAltura).observe(main);
+ ajustarAltura();
+}

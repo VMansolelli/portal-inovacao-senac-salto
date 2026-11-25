@@ -181,7 +181,7 @@ async function refreshPublic(){
   $('#saberesLista').innerHTML=cards('oficina',w=>`<article class="oficina-card"><div class="oficina-info">${picture(w)}<h4>${esc(w.titulo)}</h4><div class="oficina-meta"><span>${workshopDetails(w)}</span></div></div>${w.inscritos<w.vagas?btn('Inscrever-se','inscrever',w.id):'<span class="vagas-badge">Vagas esgotadas</span>'}</article>`,'Nenhuma oficina aprovada no momento.');
 }
 let master=false, requests=[];
-const tabs=areaTotem?{noticia:'Notícias'}:{acao:'Ações locais',oficina:'Oficinas',email:'E-mails',inscritos:'Inscritos e PDF',ideia:'Ideias'};
+const tabs=areaTotem?{noticia:'Notícias',config:'Configurações',divulgacoes:'Divulgações',conteudo:'Conteúdo do portal'}:{acao:'Ações locais',oficina:'Oficinas',email:'E-mails',inscritos:'Inscritos e PDF',ideia:'Ideias'};
 function adminCard(r){
   let content='',actions='';
   if(r.kind==='oficina'){
@@ -204,7 +204,10 @@ function renderAdmin(){
   let content='';
   const sections=master&&!areaTotem?{...tabs,acessos:'Autorizar administradores'}:tabs;
   if(!sections[tab])tab=Object.keys(sections)[0];
-  if(tab==='acessos' && master){
+  const editorTotem=areaTotem&&['config','divulgacoes','conteudo'].includes(tab);
+  if(editorTotem){
+    content='<iframe class="editor-integrado" title="'+sections[tab]+'" src="/totem-editor.html?integrado#'+tab+'" style="width:100%;border:0;display:block;height:25rem"></iframe>';
+  }else if(tab==='acessos' && master){
     content=requests.map(r=>`<article class="admin-row"><div><b>${esc(r.nome)}</b><p>${esc(r.email)} · ${esc(r.estado)}</p></div><div class="admin-actions"><label>Área autorizada<select data-escopo>${[['inovacao','Inovação'],['totem','Totem e notícias'],['ambas','Ambas']].map(([k,v])=>'<option value="'+k+'" '+((r.area||'inovacao')===k?'selected':'')+'>'+v+'</option>').join('')}</select></label>${r.estado==='ativa'?btn('Salvar acesso','salvar-area',r.id):btn(r.estado==='aguarda ativação'?'Gerar novo convite':'Aprovar','aprovar-acesso',r.id)}${['pendente','aguarda ativação'].includes(r.estado)?btn('Rejeitar','rejeitar-acesso',r.id):''}</div></article>`).join('');
   }else if(tab==='ideia'){
     for(const [status,title] of [['pendente','Recebidas'],['arquivada','Arquivadas']]){
@@ -220,7 +223,7 @@ function renderAdmin(){
       content+=`<h3 class="admin-heading">${title} <span>${group.length}</span></h3>`+(group.map(adminCard).join('')||'<p>Nenhum registro.</p>');
     }
   }else content=records.map(adminCard).join('');
-  panel.innerHTML=`<div class="management"><nav class="admin-tabs" aria-label="Seções do painel">${areaTotem?'<a class="admin-tab" href="/totem-editor.html">Totem</a>':''}${Object.entries(sections).map(([k,v])=>`<button type="button" class="admin-tab ${tab===k?'active':''}" aria-current="${tab===k?'page':'false'}" data-tab="${k}">${v}</button>`).join('')}</nav><section class="management-main"><h2>${sections[tab]}</h2>${tab==='acao'?btn('Adicionar ação local','nova'):''}${content||'<p>Nenhum registro recebido.</p>'}</section></div>`;
+  panel.innerHTML=`<div class="management"><nav class="admin-tabs" aria-label="Seções do painel">${Object.entries(sections).map(([k,v])=>`<button type="button" class="admin-tab ${tab===k?'active':''}" aria-current="${tab===k?'page':'false'}" data-tab="${k}">${v}</button>`).join('')}</nav><section class="management-main">${editorTotem?'':'<h2>'+sections[tab]+'</h2>'}${tab==='acao'?btn('Adicionar ação local','nova'):''}${content||'<p>Nenhum registro recebido.</p>'}</section></div>`;
 }
 async function refreshBoth(){await Promise.all([refreshPublic(),loadAdmin()]);}
 async function loadAdmin(){
@@ -463,7 +466,6 @@ admin.onclose=()=>{$('#reserve').hidden=true;$('#logout').hidden=true;master=fal
 $('#closePopup').onclick=()=>dialog.close();
 $('#openNoticiaModal').onclick=()=>news();
 $('#openOficinaForm').onclick=()=>workshop();
-$('#navRestrito').onclick=()=>{if(areaTotem)location.href='/?painel';else adminOpen();};
 const burger=$('#burgerBtn'), nav=$('#navLinks');
 nav.before(burger);
 burger.setAttribute('aria-controls',nav.id);
