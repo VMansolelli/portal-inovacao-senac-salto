@@ -47,11 +47,12 @@ function grade(){
 function faixa(){
  const itens=(dados?.itens||[]).filter(x=>x.tipo==='noticia');
  indice%=Math.max(1,itens.length);
- const x=itens[indice];const chave=JSON.stringify([x,itens.length,indice]);if(chave===assinatura)return;
+ const segundos=dados?.horarios?.noticia_segundos??30;
+ const x=itens[indice];const chave=JSON.stringify([x,itens.length,indice,segundos]);if(chave===assinatura)return;
  assinatura=chave;clearTimeout(temporizador);
  el('#noticia-setas').hidden=itens.length<2;
  el('#noticia-corpo').innerHTML=(x?midia(x):'')+'<div class="copy"><small>'+(x?.video?'Vídeo da unidade':'Notícias da unidade')+'</small><span class="regua"></span><strong>'+h(x?.titulo||'Sem notícias em exibição')+'</strong>'+(x?.descricao?'<p>'+h(x.descricao)+'</p>':'')+(itens.length>1?'<small>'+(indice+1)+' / '+itens.length+'</small>':'')+'</div>';
- if(itens.length>1)temporizador=setTimeout(()=>{indice++;faixa();},x?.video?30000:12000);
+ if(itens.length>1)temporizador=setTimeout(()=>{indice++;faixa();},segundos*1000);
 }
 let listaVideos=[], chaveVideo=null, idVideo=null, tentativa;
 function atualizarVideos(){

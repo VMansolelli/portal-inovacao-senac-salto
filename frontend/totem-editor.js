@@ -15,6 +15,7 @@ ed.elements.tipo.onchange=tipo;
 ed.onreset=()=>setTimeout(()=>{if(!ed.elements.titulo.value){ed.elements.id.value='';legenda='';el('#vttAtual').textContent='';arquivo='';ed.elements.inicio.value=diaAtual();ed.elements.fim.value=diaAtual();el('#existente').textContent='';tipo();}},0);
 async function carregar(){
  estado=await pedido('admin/totem');el('#painel').hidden=false;
+ hor.elements.noticia_segundos.value=estado.horarios.noticia_segundos??30;
  hor.elements.avaliacao.value=estado.horarios.avaliacao||'';
  const locais=estado.horarios.ambientes||[{nome:'Secretaria',horario:estado.horarios.secretaria},{nome:'Biblioteca',horario:estado.horarios.biblioteca}];
  el('#ambientes-editor').innerHTML=Array.from({length:4},(_,i)=>{
@@ -32,7 +33,7 @@ hor.onsubmit=async e=>{e.preventDefault();try{const ambientes=[];
    if(!local.nome||!local.horario)throw Error('Complete o nome e o horário do ambiente '+(i+1)+'.');
    ambientes.push(local);
  }
- await salvar('horarios',{ambientes,avaliacao:hor.elements.avaliacao.value});}catch(err){mensagem(err.message);}};
+ await salvar('horarios',{ambientes,avaliacao:hor.elements.avaliacao.value,noticia_segundos:hor.elements.noticia_segundos.valueAsNumber});}catch(err){mensagem(err.message);}};
 ed.onsubmit=async e=>{
  e.preventDefault();if(enviando)return;enviando=true;const d=Object.fromEntries(new FormData(ed));const file=d.cartaz||d.video;delete d.video;delete d.cartaz;const vtt=d.vtt;delete d.vtt;
  for(const c of ed.elements)c.disabled=true;

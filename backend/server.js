@@ -168,6 +168,11 @@ export function createPortal(config, remote = fetch) {
         else if(acao==='excluir')d=fields(b,['id']);
         else if(acao==='horarios'){
           d={avaliacao:linkOpcional('avaliacao')};
+          if(b.noticia_segundos!==undefined){
+            const segundos=b.noticia_segundos;
+            insist(Number.isInteger(segundos)&&segundos>=5&&segundos<=600,'Informe de 5 a 600 segundos por notícia.');
+            d.noticia_segundos=segundos;
+          }
           if(Array.isArray(b.ambientes)){
             insist(b.ambientes.length<=4,'Preencha até quatro ambientes.');
             d.ambientes=b.ambientes.map(item=>fields(item,['nome','horario'],['telefone']));
