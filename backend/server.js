@@ -169,7 +169,7 @@ export function createPortal(config, remote = fetch) {
         }else if(acao==='visibilidade'){d=fields(b,['id']);insist(typeof b.oculto==='boolean','Visibilidade inválida.');d.oculto=b.oculto;}
         else if(acao==='excluir')d=fields(b,['id']);
         else if(acao==='horarios'){
-          d={avaliacao:linkOpcional('avaliacao')};
+          d={avaliacao:linkOpcional('avaliacao'),arte_reserva:linkOpcional('arte_reserva')};
           if(b.noticia_segundos!==undefined){
             const segundos=b.noticia_segundos;
             insist(Number.isInteger(segundos)&&segundos>=5&&segundos<=600,'Informe de 5 a 600 segundos por notícia.');

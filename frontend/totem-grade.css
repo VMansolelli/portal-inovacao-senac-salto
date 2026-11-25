@@ -53,3 +53,11 @@ main{grid-template-rows:6.5% auto minmax(0,1fr) minmax(10%,.36fr) auto}
 #face-instagram,#face-qr{display:grid;grid-template-rows:auto minmax(0,1fr) auto;gap:.08rem;justify-content:stretch;justify-items:center;padding:.2rem;width:100%;height:100%}
 #face-instagram #qr-instagram,#face-qr #qr-avaliacao{width:100%;height:100%;min-height:0}
 #face-instagram svg,#face-qr svg{display:block;margin:auto;max-width:100%;height:100%}
+
+.grade table{--letra-hora:clamp(9px,min(1.76vw,1.02vh),42px)}
+.col-hora{width:8.4em;font-size:var(--letra-hora)}.col-chave{width:3.6em;font-size:var(--letra-hora)}
+.grade td:nth-child(4){white-space:nowrap}.grade th:last-child,.grade td:last-child:not([colspan]){text-align:center}
+.luz-chave,.legenda-chave i{display:inline-block;width:.68em;height:.68em;border-radius:50%;border:1px solid #8e9da9;background:#f1f4f5}
+.luz-chave.acesa,.legenda-chave i{background:#ed871a;border-color:#b0600b;box-shadow:0 0 .3em #f7941d99}
+.legenda-chave{display:block;text-align:right;color:#445b6b;font-size:.58rem;margin:.13rem .15rem}
+.oficinas>img.arte-reserva{object-fit:contain;background:white}

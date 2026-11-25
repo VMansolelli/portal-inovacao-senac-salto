@@ -41,7 +41,7 @@ function grade(){
  const total=Math.max(1,Math.ceil(lista.length/porPagina));pagina%=total;
  el('#pagina').textContent=total>1?(pagina+1)+' de '+total:'';
  const linhas=lista.slice(pagina*porPagina,(pagina+1)*porPagina);
- el('#aulas').innerHTML=linhas.map(a=>'<tr><td>'+h(a.turma)+'</td><td>'+h(a.sala)+'</td><td>'+h(a.docente||'—')+'</td><td>'+h(a.horario||(a.inicio&&a.fim?a.inicio.slice(0,5)+'–'+a.fim.slice(0,5):'—'))+'</td></tr>').join('')||(dados?'<tr><td colspan="4">Sem aulas neste turno.</td></tr>':'');
+ el('#aulas').innerHTML=linhas.map(a=>'<tr><td>'+h(a.turma)+'</td><td>'+h(a.sala)+'</td><td>'+h(a.docente||'—')+'</td><td>'+h(a.horario||(a.inicio&&a.fim?a.inicio.slice(0,5)+'–'+a.fim.slice(0,5):'—'))+'</td><td><span role="img" aria-label="'+(a.chave_retirada?'Chave retirada':'Chave disponível')+'" class="luz-chave '+(a.chave_retirada?'acesa':'')+'"></span></td></tr>').join('')||(dados?'<tr><td colspan="5">Sem aulas neste turno.</td></tr>':'');
 
 }
 function faixa(){
@@ -113,10 +113,15 @@ function ofertas(){
  oficinaAtual=oficinas[oportunidade%oficinas.length];
  el('#avaliacao').hidden=!desenharQR(el('#qr-avaliacao'),dados?.horarios?.avaliacao);
  const capa=el('#oficina-foto');
- if(capa.dataset.origem!==(oficinaAtual?.foto||'')){
-   capa.dataset.origem=oficinaAtual?.foto||'';capa.hidden=!oficinaAtual?.foto;
-   if(oficinaAtual?.foto){capa.onerror=()=>{capa.hidden=true;};capa.src=oficinaAtual.foto;}else capa.removeAttribute('src');
+ const reserva=!oficinaAtual&&dados?.horarios?.arte_reserva;
+ const origem=oficinaAtual?.foto||reserva||'';
+ if(capa.dataset.origem!==origem){
+   capa.dataset.origem=origem;capa.hidden=!origem;
+   capa.classList.toggle('arte-reserva',Boolean(reserva));capa.alt=reserva?'Saberes em Movimento':'';
+   if(origem){capa.onerror=()=>{capa.hidden=true;el('.oficina-copy').hidden=false;};capa.src=origem;}
+   else capa.removeAttribute('src');
  }
+ el('.oficina-copy').hidden=Boolean(reserva&&!capa.hidden);
  el('#oficina').textContent=oficinaAtual?.titulo||'Sem oficina no momento';
  el('#inscrever').hidden=!oficinaAtual;
  el('#inscrever').textContent=oficinaAtual&&Number(oficinaAtual.vagas)>oficinaAtual.inscritos?'Inscreva-se →':'Ver oficina →';

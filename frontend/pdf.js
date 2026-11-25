@@ -25,7 +25,7 @@
     return lines;
   }
 
-  function createReport(oficina, inscritos) {
+  function createReport(oficina, inscritos, chaves) {
     const pages = [];
     let lines;
     let y;
@@ -35,8 +35,8 @@
     function newPage() {
       lines = [];
       pages.push(lines);
-      write('Senac Salto  |  Saberes em Movimento', 'F2', 11, '0 .28 .48', 795);
-      write('Lista de inscritos', 'F2', 23, '0 .18 .32', 764);
+      write(chaves?'Senac Salto  |  Apoio':'Senac Salto  |  Saberes em Movimento', 'F2', 11, '0 .28 .48', 795);
+      write(chaves?'Relatório de chaves':'Lista de inscritos', 'F2', 23, '0 .18 .32', 764);
       lines.push('0.95 0.55 0.12 RG 2 w 44 750 m 551 750 l S');
       y = 725;
     }
@@ -48,6 +48,18 @@
       }
     }
     newPage();
+    if(chaves){
+      paragraph('Data do relatório: '+chaves.data,{bold:true});
+      paragraph('Movimentos do dia e retiradas ainda em aberto.');
+      paragraph('Movimentos: '+chaves.lista.length);
+      for(const m of chaves.lista){
+        if(y<165)newPage();
+        paragraph(m.aula.sala+' | '+m.aula.turma,{bold:true,limit:55});
+        paragraph('Retirada: '+m.retirante+' | '+chaves.hora(m.retirada));
+        paragraph(m.devolucao?'Devolução: '+m.devolvente+' | '+chaves.hora(m.devolucao):'Aguardando devolução');
+        y-=8;
+      }
+    }else{
     paragraph(oficina.titulo || oficina.nome || 'Oficina', {bold: true, size: 14, limit: 36});
     const date = String(oficina.data || '').replace(/^(\d{4})-(\d{2})-(\d{2})$/, '$3/$2/$1');
     paragraph(`${date}  |  ${oficina.inicio} às ${oficina.termino}`);
@@ -65,6 +77,7 @@
       y -= 10;
     });
 
+    }
     const objects = ['', '<< /Type /Catalog /Pages 2 0 R >>', '',
       '<< /Type /Font /Subtype /Type1 /BaseFont /Courier /Encoding /WinAnsiEncoding >>',
       '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>'];
@@ -90,6 +103,12 @@
     return new Blob([pdf], {type: 'application/pdf'});
   }
 
+  window.baixarRelatorioChaves=(data,lista,hora)=>{
+    const blob=createReport(null,null,{data:data.split('-').reverse().join('/'),lista,hora});
+    const link=document.createElement('a');link.href=URL.createObjectURL(blob);
+    link.download='chaves-'+data+'.pdf';document.body.append(link);link.click();link.remove();
+    setTimeout(()=>URL.revokeObjectURL(link.href),60000);
+  };
   window.baixarLista = (oficina, inscritos) => {
     const blob = createReport(oficina, inscritos);
     const link = document.createElement('a');

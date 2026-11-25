@@ -11,7 +11,7 @@ const input=(label,name,type='text',value='',attrs='required')=>`<label>${label}
 const select=(label,name,items,selected='',required=true)=>`<label>${label}<select name="${name}" ${required?'required':''}><option value="">Selecione</option>${items.map(([v,l])=>`<option value="${esc(v)}" ${v===selected?'selected':''}>${esc(l)}</option>`).join('')}</select></label>`;
 const submit=t=>`<button class="accent" type="submit">${esc(t)}</button>`;
 const labelType={sala:'Salas',curso:'Cursos',turma:'Turmas',docente:'Docentes'};
-const tabs={excel:'Mapa do Excel',relatorio:'Relatório de chaves',acessos:'Permissões'};
+const tabs={excel:'Mapa do Excel',relatorio:'Relatório de chaves',qr:'QR do balcão',acessos:'Permissões'};
 let staff=null,activeTab='excel',date=nowDay(),generation=0,balcao;
 const desk=()=>location.hash==='#chaves';
 function say(msg){$('#status').textContent=msg;}
@@ -67,8 +67,10 @@ async function render(){
  }else if(activeTab==='excel'){abrirImportacao($('#page'),api);
  }else if(activeTab==='relatorio'){
    const lista=await api('relatorio',{data:date});if(run!==generation)return;
-   $('#page').innerHTML=tools('Relatório de chaves',dateField()+btn('QR do balcão','qr'))+'<p>Retiradas e devoluções da data escolhida, incluindo todas as chaves ainda em uso.</p>'+
-    (lista.map(m=>row(m.aula.sala+' · '+m.aula.turma,'Retirada: '+m.retirante+' · '+stamp(m.retirada)+(m.devolucao?' | Devolução: '+m.devolvente+' · '+stamp(m.devolucao):' | Aguardando devolução'), '')).join('')||'<p>Nenhum movimento.</p>');
+   $('#page').innerHTML=tools('Relatório de chaves',dateField())+'<p>Retiradas e devoluções da data escolhida, incluindo todas as chaves ainda em uso.</p>'+
+    (lista.map(m=>row(m.aula.sala+' · '+m.aula.turma,'Retirada: '+m.retirante+' · '+stamp(m.retirada)+(m.devolucao?' | Devolução: '+m.devolvente+' · '+stamp(m.devolucao):' | Aguardando devolução'), '')).join('')||'<p>Nenhum movimento.</p>')+btn('Baixar relatório em PDF','pdf-chaves','','primary');
+ }else if(activeTab==='qr'){
+   $('#page').innerHTML=tools('QR permanente do balcão','')+'<p>Leia o código para retirar ou devolver uma chave.</p><img class="qr" alt="QR do balcão de chaves" src="balcao-permanente.png" style="width:min(260px,85%);display:block"><div class="buttons"><a download href="balcao-permanente.png">Baixar PNG</a> <a download href="balcao-permanente.pdf">Baixar PDF</a></div>';
  }else{
   const list=await api('master/lista');if(run!==generation)return;
   $('#page').innerHTML=tools('Permissões do Apoio','')+(list.map(x=>row(x.nome,x.email+' · '+x.estado,x.estado==='ativa'?'':btn('Aprovar / emitir convite','master/aprovar',x.id)+btn('Rejeitar','master/rejeitar',x.id))).join('')||'<p>Nenhuma solicitação. Apenas sua conta tem acesso inicialmente.</p>');
@@ -81,13 +83,15 @@ const dateField=()=>`<label>Data<input id="date" type="date" value="${date}" req
 async function act(action,id){
  if(action==='retry')return render();
  if(action==='tab'){activeTab=id;return render();}
- if(action==='qr')return modal('QR Code permanente','<p>Fixe este código no balcão. Ele abre a consulta e a movimentação de chaves.</p><img class="qr" src="/mapa-qr.svg" alt="QR do balcão de chaves"><p><a href="/mapa-qr.svg" download="QR-balcao.svg">Baixar QR para impressão</a></p>');
+ if(action==='pdf-chaves'){
+   const dia=date;const lista=await api('relatorio',{data:dia});baixarRelatorioChaves(dia,lista,stamp);return;
+ }
  if(action==='pegar'||action==='entregar'){
    const pegar=action==='pegar';
    const aula=pegar?balcao.aulas.find(a=>a.indice===Number(id)):balcao.abertas.find(m=>m.id===id)?.aula;
    if(!aula)return render();
    const origem=pegar?{revisao:balcao.revisao,indice:Number(id),pedido:crypto.randomUUID()}:{id};
-   return modal(pegar?'Retirar chave':'Devolver chave','<h3>'+esc(aula.sala)+'</h3><p>'+esc(aula.turma)+'</p>'+input('Seu nome completo','nome','text','','required maxlength="254" autocomplete="off"'),async d=>{
+   return modal(pegar?'Retirar chave':'Devolver chave','<h3>'+esc(aula.sala)+'</h3><p>'+esc(aula.turma)+'</p>'+input('Seu Nome','nome','text','','required maxlength="254" autocomplete="off"'),async d=>{
      await api(action,{...origem,nome:d.nome.trim()});await done((pegar?'Retirada':'Devolução')+' registrada · '+aula.sala);
    },pegar?'Confirmar retirada':'Confirmar devolução');
  }

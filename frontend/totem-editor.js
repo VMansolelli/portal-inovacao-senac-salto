@@ -16,6 +16,8 @@ ed.onreset=()=>setTimeout(()=>{if(!ed.elements.titulo.value){ed.elements.id.valu
 async function carregar(){
  estado=await pedido('admin/totem');el('#painel').hidden=false;
  hor.elements.noticia_segundos.value=estado.horarios.noticia_segundos??30;
+ const arte=estado.horarios.arte_reserva;
+ el('#prev-arte').hidden=!arte;if(arte)el('#prev-arte').src=arte;
  hor.elements.avaliacao.value=estado.horarios.avaliacao||'';
  const locais=estado.horarios.ambientes||[{nome:'Secretaria',horario:estado.horarios.secretaria},{nome:'Biblioteca',horario:estado.horarios.biblioteca}];
  el('#ambientes-editor').innerHTML=Array.from({length:4},(_,i)=>{
@@ -26,14 +28,22 @@ async function carregar(){
  el('#itens').innerHTML=estado.itens.map(x=>'<article><div><strong>'+h(x.titulo)+'</strong><p>'+h(tipoNome[x.tipo])+' · '+(x.oculto?'Oculto':'Visível')+'</p></div><button data-vis="'+h(x.id)+'">'+(x.oculto?'Mostrar':'Ocultar')+'</button></article>').join('');
 }
 async function salvar(op,d){await pedido('admin/totem/'+op,d);await carregar();mensagem('Alteração salva.');}
-hor.onsubmit=async e=>{e.preventDefault();try{const ambientes=[];
+hor.onsubmit=async e=>{e.preventDefault();const botao=hor.querySelector('button');if(botao.disabled)return;botao.disabled=true;
+ try{const ambientes=[];
  for(let i=0;i<4;i++){
    const local=Object.fromEntries(['nome','horario','telefone'].map(k=>[k,hor.elements[k+i].value.trim()]));
    if(!local.nome&&!local.horario&&!local.telefone)continue;
    if(!local.nome||!local.horario)throw Error('Complete o nome e o horário do ambiente '+(i+1)+'.');
    ambientes.push(local);
  }
- await salvar('horarios',{ambientes,avaliacao:hor.elements.avaliacao.value,noticia_segundos:hor.elements.noticia_segundos.valueAsNumber});}catch(err){mensagem(err.message);}};
+ const file=hor.elements.arte.files[0];let arte;
+ if(file&&hor.elements.remover_arte.checked)throw Error('Escolha enviar ou remover a arte.');
+ if(file){if(!['image/jpeg','image/png','image/webp'].includes(file.type)||file.size>8388608)throw Error('Use JPG, PNG ou WebP de até 8 MB.');
+   const upload=await pedido('admin/totem/upload',{mime:file.type,bytes:file.size});
+   const resp=await fetch(upload.url,{method:'PUT',headers:{'Content-Type':file.type},body:file});
+   if(!resp.ok)throw Error('Não foi possível enviar a arte.');arte=upload.publica;
+ }else if(hor.elements.remover_arte.checked)arte='';
+ await salvar('horarios',{ambientes,arte_reserva:arte,avaliacao:hor.elements.avaliacao.value,noticia_segundos:hor.elements.noticia_segundos.valueAsNumber});hor.elements.arte.value='';hor.elements.remover_arte.checked=false;}catch(err){mensagem(err.message);}finally{botao.disabled=false;}};
 ed.onsubmit=async e=>{
  e.preventDefault();if(enviando)return;enviando=true;const d=Object.fromEntries(new FormData(ed));const file=d.cartaz||d.video;delete d.video;delete d.cartaz;const vtt=d.vtt;delete d.vtt;
  for(const c of ed.elements)c.disabled=true;
