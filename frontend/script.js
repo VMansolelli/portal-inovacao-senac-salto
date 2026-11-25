@@ -185,7 +185,7 @@ const tabs=areaTotem?{noticia:'Notícias',config:'Configurações',divulgacoes:'
 function adminCard(r){
   let content='',actions='';
   if(r.kind==='oficina'){
-    content=workshopDetails(r);actions=btn('Editar','editar',r.id)+btn('Excluir oficina','excluir-oficina',r.id);
+    content=workshopDetails(r);actions=btn('Editar','editar',r.id)+(r.status==='aprovada'?btn('Arquivar oficina','arquivar-oficina',r.id):'')+btn('Excluir oficina','excluir-oficina',r.id);
   }else if(r.kind==='ideia'){
     content=`${esc(r.nome||'Anônimo')} · ${esc(r.perfil)} · ${esc(r.categoria)}<p>${esc(r.texto)}</p>`;
   }else{
@@ -404,7 +404,7 @@ async function action(button){
     dialog.addEventListener('close',()=>{if(objectURL)URL.revokeObjectURL(objectURL);},{once:true});
     return;
   }
-  const confirmations={'excluir-oficina':'Excluir a oficina e todas as inscrições vinculadas?', 'apagar-ideia':'Apagar definitivamente esta ideia?', 'arquivar-ideia':'Mover a ideia para Arquivadas?', 'arquivar-noticia':'Retirar a notícia do mural e arquivar?'};
+  const confirmations={'arquivar-oficina':'Arquivar a oficina e retirá-la do portal e do totem?','excluir-oficina':'Excluir a oficina e todas as inscrições vinculadas?', 'apagar-ideia':'Apagar definitivamente esta ideia?', 'arquivar-ideia':'Mover a ideia para Arquivadas?', 'arquivar-noticia':'Retirar a notícia do mural e arquivar?'};
   if(Object.hasOwn(confirmations,op)){
     if(confirm(confirmations[op])){await api('admin/'+op,{id});await refreshBoth();}return;
   }

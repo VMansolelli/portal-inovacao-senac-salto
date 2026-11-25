@@ -11,7 +11,7 @@ const input=(label,name,type='text',value='',attrs='required')=>`<label>${label}
 const select=(label,name,items,selected='',required=true)=>`<label>${label}<select name="${name}" ${required?'required':''}><option value="">Selecione</option>${items.map(([v,l])=>`<option value="${esc(v)}" ${v===selected?'selected':''}>${esc(l)}</option>`).join('')}</select></label>`;
 const submit=t=>`<button class="accent" type="submit">${esc(t)}</button>`;
 const labelType={sala:'Salas',curso:'Cursos',turma:'Turmas',docente:'Docentes'};
-const tabs={excel:'Mapa do Excel',relatorio:'Relatório de chaves',qr:'QR do balcão',acessos:'Permissões'};
+const tabs={excel:'Mapa do Excel',relatorio:'Relatório de chaves',qr:'QR das chaves',acessos:'Permissões'};
 let staff=null,activeTab='excel',date=nowDay(),generation=0,balcao;
 let turnoBalcao;
 const desk=()=>location.hash==='#chaves';
@@ -42,21 +42,23 @@ async function entry(){
  generation++;staff=null;
  const hora=Number(new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Sao_Paulo',hour:'2-digit',hourCycle:'h23'}).format(new Date()));
  turnoBalcao=hora<13?0:hora<19?1:2;date=nowDay();document.body.classList.toggle('desk',desk());
- $('h1').textContent=desk()?'Balcão de chaves':'Mapa de salas';
+ $('.heading h1').textContent=desk()?'Retirada e devolução de chaves':'Mapa de salas';
  $('#campus').textContent=desk()?'Senac Salto · Docentes':'Senac Salto · Apoio';
- $('.switch').textContent=desk()?'Área do Apoio':'Balcão docente';$('.switch').href=desk()?'#':'#chaves';say('');$('#page').textContent='Carregando…';$('#tabs').innerHTML='';$('#print').hidden=true;$('#sair').hidden=true;
+ say('');$('#page').textContent='Carregando…';$('#tabs').innerHTML='';$('#print').hidden=true;$('#sair').hidden=true;
  if(!desk())try{staff=await api('perfil');}catch(err){if(err.status!==403)say(err.message);}
  await render();
 }
 function gate(){
- $('#page').innerHTML='<div class="card"><h2>Acesso do Apoio</h2><form class="form">'+input('E-mail institucional','email','email')+input('Senha','senha','password','','required autocomplete="current-password"')+submit('Entrar')+'</form>'+btn('Solicitar acesso','solicitar')+btn('Ativar convite','ativar')+'<p role="alert" class="gate-error"></p></div>';
+ $('#page').innerHTML='<div class="acesso-quadro"><div class="acesso-marca"><b>Senac Salto</b><h1>Mapa de<br> salas<span>.</span></h1>'+$('.brand-mark').outerHTML+'</div><div class="acesso-form"><h2>Acesso ao Mapa de salas</h2><p>Entre com sua conta institucional para gerenciar o mapa.</p><form class="form">'+input('E-mail institucional','email','email','','required autocomplete="username"')+'<label>Senha<span class="senha-mapa"><input name="senha" type="password" autocomplete="current-password" required><button type="button" id="ver-senha">Mostrar</button></span></label>'+submit('Entrar no painel →')+'</form>'+btn('Solicitar acesso','solicitar')+btn('Ativar meu convite','ativar')+'<p role="alert" class="gate-error"></p></div></div>';
+ $('#ver-senha').onclick=e=>{const campo=$('.senha-mapa input');campo.type=campo.type==='password'?'text':'password';e.currentTarget.textContent=campo.type==='password'?'Mostrar':'Ocultar';};
  formWire($('#page form'),async d=>{await api('entrar',d);staff=await api('perfil');say('');await render();},$('.gate-error'));
 }
 async function render(){
  const run=++generation,mode=desk();
- $('#sair').hidden=!mode&&!staff;
+ document.body.classList.toggle('acesso-mapa',!mode&&!staff);
+ $('#sair').hidden=mode||!staff;
  if(!mode&&!staff){$('#print').hidden=true;$('#tabs').replaceChildren();gate();return;}
- $('#tabs').innerHTML=mode?'':Object.entries(tabs).filter(([k])=>k!=='acessos'||staff.master).map(([k,v])=>`<button data-action="tab" data-id="${k}" aria-current="${activeTab===k?'page':'false'}">${v}</button>`).join('');
+ $('#tabs').innerHTML=mode?'':Object.entries(tabs).map(([k,v])=>`<button data-action="tab" data-id="${k}" aria-current="${activeTab===k?'page':'false'}">${v}</button>`).join('');
  $('#print').hidden=true;
  try{
  if(mode){
@@ -66,7 +68,7 @@ async function render(){
    const abertas=data.abertas.map(m=>row(m.aula.sala,br(m.dia)+' · '+detalhe(m.aula),btn('Devolver','entregar',m.id))).join('');
    const botoesTurno=['Manhã','Tarde','Noite'].map((t,i)=>'<button type="button" data-action="turno" data-id="'+i+'" aria-pressed="'+(i===turnoBalcao)+'" class="'+(i===turnoBalcao?'primary':'')+'">'+t+'</button>').join('');
    const aulas=data.aulas.filter(a=>a.turno===turnoBalcao).map(a=>row(a.sala,detalhe(a),a.ocupada?'Chave em uso':btn('Retirar','pegar',a.indice,'primary'))).join('');
-   $('#page').innerHTML=tools('Balcão · '+br(data.dia),btn('Atualizar lista','retry'))+
+   $('#page').innerHTML=tools('Chaves · '+br(data.dia),btn('Atualizar lista','retry'))+
      (abertas?'<h2>Devolver uma chave</h2>'+abertas:'')+'<h2>Retirar para uma aula</h2><nav class="buttons" aria-label="Turno da retirada">'+botoesTurno+'</nav>'+ (aulas||'<p>Nenhuma aula publicada neste turno.</p>');
  }else if(activeTab==='excel'){abrirImportacao($('#page'),api);
  }else if(activeTab==='relatorio'){
@@ -74,10 +76,10 @@ async function render(){
    $('#page').innerHTML=tools('Relatório de chaves',dateField())+'<p>Retiradas e devoluções da data escolhida, incluindo todas as chaves ainda em uso.</p>'+
     (lista.map(m=>row(m.aula.sala+' · '+m.aula.turma,'Retirada: '+m.retirante+' · '+stamp(m.retirada)+(m.devolucao?' | Devolução: '+m.devolvente+' · '+stamp(m.devolucao):' | Aguardando devolução'), '')).join('')||'<p>Nenhum movimento.</p>')+btn('Baixar relatório em PDF','pdf-chaves','','primary');
  }else if(activeTab==='qr'){
-   $('#page').innerHTML=tools('QR permanente do balcão','')+'<p>Leia o código para retirar ou devolver uma chave.</p><img class="qr" alt="QR do balcão de chaves" src="balcao-permanente.png" style="width:min(260px,85%);display:block"><div class="buttons"><a download href="balcao-permanente.png">Baixar PNG</a> <a download href="balcao-permanente.pdf">Baixar PDF</a></div>';
+   $('#page').innerHTML=tools('QR permanente das chaves','')+'<p>Leia o código para retirar ou devolver uma chave.</p><img class="qr" alt="QR de retirada e devolução de chaves" src="balcao-permanente.png" style="width:min(260px,85%);display:block"><div class="buttons"><a download href="balcao-permanente.png">Baixar PNG</a> <a download href="balcao-permanente.pdf">Baixar PDF</a></div>';
  }else{
   const list=await api('master/lista');if(run!==generation)return;
-  $('#page').innerHTML=tools('Permissões do Apoio','')+(list.map(x=>row(x.nome,x.email+' · '+x.estado,x.estado==='ativa'?'':btn('Aprovar / emitir convite','master/aprovar',x.id)+btn('Rejeitar','master/rejeitar',x.id))).join('')||'<p>Nenhuma solicitação. Apenas sua conta tem acesso inicialmente.</p>');
+  $('#page').innerHTML=tools('Permissões do Apoio','')+(list.map(x=>row(x.nome,x.email+' · '+x.estado,x.estado==='ativa'?(staff.master?btn('Excluir acesso','master/revogar',x.id,'danger'):''):btn('Aprovar / emitir convite','master/aprovar',x.id)+(staff.master?btn('Rejeitar','master/rejeitar',x.id):''))).join('')||'<p>Nenhuma solicitação. </p>');
  }
  }catch(err){if(run===generation){if(err.status===403&&!mode){staff=null;say(err.message);return render();}$('#page').innerHTML=btn('Tentar novamente','retry');say(err.message);}}
 }
@@ -100,7 +102,7 @@ async function act(action,id){
      await api(action,{...origem,nome:d.nome.trim()});await done((pegar?'Retirada':'Devolução')+' registrada · '+aula.sala);
    },pegar?'Confirmar retirada':'Confirmar devolução');
  }
- if(action==='solicitar')return modal('Solicitar acesso ao Apoio',input('Nome','nome')+input('E-mail institucional','email','email'),async d=>{await api(action,d);await done('Solicitação registrada para avaliação de Victor.');},'Solicitar acesso');
+ if(action==='solicitar')return modal('Solicitar acesso ao Apoio',input('Nome','nome')+input('E-mail institucional','email','email'),async d=>{await api(action,d);await done('Solicitação registrada para avaliação do Apoio.');},'Solicitar acesso');
  if(action==='ativar')return modal('Ativar convite do Apoio',input('E-mail','email','email')+input('Convite','codigo')+
    input('Senha (use a atual se já tiver conta)','senha','password','','required minlength="8"'),async d=>{await api(action,d);await done('Acesso ativado. Entre com e-mail e senha.');},'Ativar');
  if(action.startsWith('master/')){

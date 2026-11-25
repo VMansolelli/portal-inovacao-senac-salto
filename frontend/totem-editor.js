@@ -24,7 +24,11 @@ async function carregar(){
    const local=locais[i]||{};
    return '<fieldset><legend>Ambiente '+(i+1)+'</legend>'+[['nome','Nome'],['horario','Horário de funcionamento'],['telefone','Telefone (opcional)']].map(([campo,label])=>'<label>'+label+'<input type="'+(campo==='telefone'?'tel':'text')+'" name="'+campo+i+'" maxlength="254" value="'+h(local[campo]||'')+'"></label>').join('')+'</fieldset>';
  }).join('');
- el('#avisos').innerHTML=estado.avisos.map(a=>'<article><div><strong>'+h(a.titulo)+'</strong><p>'+(a.tipo==='Reel'?'Centro · Vídeo da unidade':h(a.tipo))+(a.tipo==='Reel'&&!a.arquivo?' · Anexe o vídeo para exibir':'')+' · '+dataBR(a.inicio)+' – '+dataBR(a.fim)+'</p></div><button data-edit="'+h(a.id)+'">Editar</button><button data-del="'+h(a.id)+'">Excluir</button></article>').join('');
+ el('#avisos').innerHTML=[['esquerda','Painel esquerdo'],['centro','Painel central'],['outros','Outras divulgações']].map(([grupo,titulo])=>{
+   const itens=estado.avisos.filter(a=>grupoAviso(a)===grupo);
+   if(!itens.length)return '';
+   return '<h3>'+titulo+'</h3>'+itens.map((a,i)=>'<article><div><strong>'+h(a.titulo)+'</strong><p>'+h(a.tipo==='Reel'?'Vídeo da unidade':a.tipo)+' · '+dataBR(a.inicio)+' – '+dataBR(a.fim)+'</p></div>'+ (grupo==='outros'?'':setasOrdem(grupo,i,itens.length))+'<button data-edit="'+h(a.id)+'">Editar</button><button data-del="'+h(a.id)+'">Excluir</button></article>').join('');
+ }).join('');
  el('#itens').innerHTML=estado.itens.map(x=>'<article><div><strong>'+h(x.titulo)+'</strong><p>'+h(tipoNome[x.tipo])+' · '+(x.oculto?'Oculto':'Visível')+'</p></div><button data-vis="'+h(x.id)+'">'+(x.oculto?'Mostrar':'Ocultar')+'</button></article>').join('');
 }
 async function salvar(op,d){await pedido('admin/totem/'+op,d);await carregar();mensagem('Alteração salva.');}
@@ -76,23 +80,39 @@ document.addEventListener('click',async e=>{
  else{const x=estado.itens.find(v=>v.id===b.dataset.vis);await salvar('visibilidade',{id:x.id,oculto:!x.oculto});}
  }catch(err){mensagem(err.message);}finally{b.disabled=false;}
 });
+let fotosExibidas=[];
+function grupoAviso(a){return a.tipo==='Vídeo'?'esquerda':['Curso','Reel'].includes(a.tipo)?'centro':'outros';}
+function setasOrdem(grupo,i,total){
+ return [-1,1].map(p=>'<button type="button" data-ordem="'+grupo+'" data-pos="'+i+'" data-passo="'+p+'" '+(i+p<0||i+p>=total?'disabled':'')+' aria-label="'+(p<0?'Mover para antes':'Mover para depois')+'">'+(p<0?'↑':'↓')+'</button>').join('');
+}
+document.addEventListener('click',async e=>{
+ const b=e.target.closest('button[data-ordem]');if(!b)return;
+ const grupo=b.dataset.ordem,i=Number(b.dataset.pos),j=i+Number(b.dataset.passo);
+ const antes=(grupo==='fotos'?fotosExibidas:estado.avisos.filter(a=>grupoAviso(a)===grupo)).map(a=>a.id);
+ const ids=antes.slice();[ids[i],ids[j]]=[ids[j],ids[i]];
+ b.disabled=true;
+ try{await pedido('admin/totem/ordenar',{grupo,antes,ids});mensagem('Ordem salva.');}
+ catch(err){mensagem(err.message);}
+ try{if(grupo==='fotos')await listarFotos();else await carregar();}catch(err){mensagem(err.message);}
+});
 async function listarFotos(){
  const lista=el('#lista-fotos');
  try{
    const fotos=await pedido('admin/totem/galeria');
-   lista.innerHTML=['pendente','aprovada'].map(estado=>{
+   fotosExibidas=fotos.filter(f=>f.estado==='aprovada');
+   lista.innerHTML=['pendente','aprovada','arquivada'].map(estado=>{
      const grupo=fotos.filter(f=>f.estado===estado);
-     const botoes=estado==='pendente'?[['aprovar','Aprovar'],['rejeitar','Rejeitar']]:[['arquivar','Retirar de exibição']];
-     return '<h3>'+(estado==='pendente'?'Aguardando aprovação':'Em exibição')+' ('+grupo.length+')</h3><div class="grade-fotos">'+grupo.map(f=>'<article><img loading="lazy" alt="Foto enviada para o totem" src="/api/admin/totem/galeria/'+h(f.id)+'">'+botoes.map(([acao,texto])=>'<button data-foto="'+h(f.id)+'" data-decisao="'+acao+'">'+texto+'</button>').join('')+'</article>').join('')+'</div>';
+     const botoes=estado==='pendente'?[['aprovar','Aprovar'],['rejeitar','Rejeitar']]:estado==='aprovada'?[['arquivar','Arquivar'],['excluir','Excluir foto']]:[['reexibir','Recolocar em exibição'],['excluir','Excluir foto']];
+     return '<h3>'+(estado==='pendente'?'Aguardando aprovação':estado==='aprovada'?'Em exibição':'Arquivadas')+' ('+grupo.length+')</h3><div class="grade-fotos">'+grupo.map((f,i)=>'<article><img loading="lazy" alt="Foto enviada para o totem" src="/api/admin/totem/galeria/'+h(f.id)+'">'+(estado==='aprovada'?setasOrdem('fotos',i,grupo.length):'')+botoes.map(([acao,texto])=>'<button data-estado="'+estado+'" data-foto="'+h(f.id)+'" data-decisao="'+acao+'">'+texto+'</button>').join('')+'</article>').join('')+'</div>';
    }).join('');
  }catch(err){mensagem(err.message);}
 }
 el('#atualizar-fotos').onclick=listarFotos;
 el('#lista-fotos').onclick=async e=>{
  const b=e.target.closest('button[data-decisao]');if(!b)return;
- if(b.dataset.decisao==='rejeitar'&&!confirm('Rejeitar e excluir esta foto?'))return;
+ if(['rejeitar','excluir'].includes(b.dataset.decisao)&&!confirm('Excluir definitivamente esta foto?'))return;
  b.disabled=true;
- try{await pedido('admin/totem/galeria/decidir',{id:b.dataset.foto,decisao:b.dataset.decisao});mensagem('Decisão registrada.');}
+ try{await pedido('admin/totem/galeria/decidir',{id:b.dataset.foto,decisao:b.dataset.decisao,estado:b.dataset.estado});mensagem('Decisão registrada.');}
  catch(err){mensagem(err.message);}
  finally{await listarFotos();b.disabled=false;}
 };

@@ -76,12 +76,7 @@ function mostrarVideo(i,forcar=false){
 let chaveCentro=null, tempoCentro, indiceCentro=0;
 function centro(){
  const avisos=dados?.avisos||[];
- const cursos=avisos.filter(a=>a.tipo==='Curso'&&a.imagem_curso);
- const reels=avisos.filter(a=>a.tipo==='Reel'&&a.video);
- const fila=[];
- for(let i=0;i<Math.max(cursos.length,reels.length);i++){
-   if(cursos[i])fila.push(cursos[i]);if(reels[i])fila.push(reels[i]);
- }
+ const fila=avisos.filter(a=>(a.tipo==='Curso'&&a.imagem_curso)||(a.tipo==='Reel'&&a.video));
  indiceCentro%=Math.max(1,fila.length);
  const item=fila[indiceCentro];
  const chave=JSON.stringify([item,fila.map(a=>a.id)]);
