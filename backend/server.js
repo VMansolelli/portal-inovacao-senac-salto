@@ -1,5 +1,5 @@
 import {randomBytes,createHash} from 'node:crypto';
-import {prepareMap,holiday,today,iso,day,oneDay,newPin,pinDigest} from './mapa.js';
+import {today,day} from './mapa.js';
 import http from 'node:http';
 import {pathToFileURL} from 'node:url';
 import {fields,workshop,photo,insist} from './validation.js';
@@ -29,7 +29,7 @@ export function createPortal(config, remote = fetch) {
       headers:{apikey:config.SUPABASE_PUBLISHABLE_KEY,'Content-Type':'application/json',...opts.headers}});
   }
   const pinAttempts=new Map();
-  function limitPin(req){
+  function limitarMovimentos(req){
     // Bucket per network source, with a global ceiling for this process.
     const source=req.headers['x-forwarded-for']?.split(',').at(-1)?.trim()||req.socket?.remoteAddress||'local';
     const minute=Math.floor(Date.now()/60000);
@@ -93,10 +93,12 @@ export function createPortal(config, remote = fetch) {
       const mapRequest=op.startsWith('mapa/');
       const action=mapRequest?op.slice(5):op;
       const accessRpc=mapRequest?mapRpc:rpc;
-      if(mapRequest && !['entrar','solicitar','ativar','pin-dia','retirar','devolver'].includes(action)){
+      if(mapRequest && !['entrar','solicitar','ativar','balcao','pegar','entregar'].includes(action)){
         staff=await verifiedUser(token);insist(await mapAllowed(staff),'Entre com uma conta autorizada para o Apoio.',403);
         if(action.startsWith('master/'))insist(staff.id===masterId,'Exclusivo de Victor.',403);
       }
+      if(mapRequest && !['balcao','pegar','entregar','relatorio','excel-consultar','excel-publicar','perfil','entrar','ativar','solicitar','master/lista','master/aprovar','master/rejeitar'].includes(action))
+        return reply(410,{erro:'O Apoio agora utiliza o mapa publicado pelo Excel.'});
       if(req.method==='GET'){
         if(['totem','admin/totem'].includes(op)){
           const info=await rpc(op==='totem'?'tela':'editor',{},'totem_api');
@@ -104,7 +106,7 @@ export function createPortal(config, remote = fetch) {
           return reply(200,info);
         }
         if(op==='mapa/perfil')return reply(200,{master:staff.id===masterId,hoje:today()});
-        if(mapRequest && ['catalogo','recessos','master/lista'].includes(action))return reply(200,await mapRpc(action,{}));
+        if(mapRequest && action==='master/lista')return reply(200,await mapRpc(action,{}));
         if(op==='totem/versao')return reply(200,{versao:'midias-3',reelPorLink:false});
         if(op==='versao')return reply(200,{versao:'painel-3',recuperacao:'link e chave de reserva',mapa:'mapa-1',salas:(await mapRpc('salas',{})).length});
         if(op==='admin/perfil')return reply(200,{master:staff.id===masterId});
@@ -184,6 +186,20 @@ export function createPortal(config, remote = fetch) {
         else insist(false,'Página não encontrada.',404);
         return reply(200,await rpc(acao,d,'totem_api'));
       }
+      if(mapRequest&&['balcao','pegar','entregar','relatorio'].includes(action)){
+        const p={};
+        if(action==='relatorio'){day(b.data);p.data=b.data;}
+        if(action==='pegar'||action==='entregar'){
+          limitarMovimentos(req);
+          const uuid=/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i;
+          Object.assign(p,fields(b,['nome']));
+          if(action==='pegar'){
+            insist(uuid.test(b.pedido)&&uuid.test(b.revisao)&&Number.isInteger(b.indice)&&b.indice>=0&&b.indice<500,'Atualize o mapa e escolha a aula.');
+            Object.assign(p,{pedido:b.pedido,revisao:b.revisao,indice:b.indice});
+          }else{insist(uuid.test(b.id),'Escolha a chave retirada.');p.id=b.id;}
+        }
+        return reply(200,await rpc(action,p,'chaves_excel_api'));
+      }
       if(mapRequest&&['excel-consultar','excel-publicar'].includes(action)){
         day(b.data);
         const p={data:b.data};
@@ -199,24 +215,6 @@ export function createPortal(config, remote = fetch) {
         return reply(200,await rpc(action,p,'mapa_excel_api'));
       }
       let data;
-      if(mapRequest && ['dia','pin-dia','retirar','devolver','criar','alterar','cancelar','cadastro','desativar','reativar','pin','recesso','remover-recesso','historico','corrigir'].includes(action)){
-        let payload=prepareMap(action,b);let generated;
-        if(['pin-dia','retirar','devolver'].includes(action)){const origem=limitPin(req);payload={...payload,origem,hash:pinDigest(b.pin,config)};delete payload.pin;}
-        if(action==='pin'){if(b.id==='admin')insist(staff.id===masterId,'Exclusivo de Victor.',403);
-          for(let tentativa=0;tentativa<25;tentativa++){
-            generated=newPin(b.id==='admin');
-            try{await mapRpc('pin',{id:b.id,hash:pinDigest(generated,config)});return reply(200,{pin:generated});}
-            catch(err){if(err.status!==409||err.message!=='Gere o PIN novamente.')throw err;}
-          }
-          insist(false,'Não foi possível emitir um PIN exclusivo. Tente novamente.',409);}
-        if(action==='corrigir')payload={...b,operador:staff.email};
-        if(action==='recesso')insist(typeof b.motivo==='string' && b.motivo.trim(),'Informe o motivo.');
-        const result=await mapRpc(action,payload);
-        if(action==='dia'||action==='pin-dia'){
-          const start=day(b.data);result.feriados=Array.from({length:b.semana?7:1},(_,i)=>iso(start+i*oneDay)).map(data=>({data,nome:holiday(data)})).filter(x=>x.nome);
-        }
-        return reply(200,result);
-      }
       if(mapRequest)insist(['solicitar','ativar','entrar','master/aprovar','master/rejeitar'].includes(action),'Página não encontrada.',404);
       switch(action){
         case 'solicitar': {
