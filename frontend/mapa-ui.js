@@ -13,6 +13,7 @@ const submit=t=>`<button class="accent" type="submit">${esc(t)}</button>`;
 const labelType={sala:'Salas',curso:'Cursos',turma:'Turmas',docente:'Docentes'};
 const tabs={excel:'Mapa do Excel',relatorio:'Relatório de chaves',qr:'QR do balcão',acessos:'Permissões'};
 let staff=null,activeTab='excel',date=nowDay(),generation=0,balcao;
+let turnoBalcao;
 const desk=()=>location.hash==='#chaves';
 function say(msg){$('#status').textContent=msg;}
 async function api(action,data){
@@ -38,7 +39,9 @@ $('#close').onclick=()=>$('#modal').close();
 $('#modal').onclose=()=>$('#dialogContent').replaceChildren();
 $('#print').onclick=()=>window.print();
 async function entry(){
- generation++;staff=null;date=nowDay();document.body.classList.toggle('desk',desk());
+ generation++;staff=null;
+ const hora=Number(new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Sao_Paulo',hour:'2-digit',hourCycle:'h23'}).format(new Date()));
+ turnoBalcao=hora<13?0:hora<19?1:2;date=nowDay();document.body.classList.toggle('desk',desk());
  $('h1').textContent=desk()?'Balcão de chaves':'Mapa de salas';
  $('#campus').textContent=desk()?'Senac Salto · Docentes':'Senac Salto · Apoio';
  $('.switch').textContent=desk()?'Área do Apoio':'Balcão docente';$('.switch').href=desk()?'#':'#chaves';say('');$('#page').textContent='Carregando…';$('#tabs').innerHTML='';$('#print').hidden=true;$('#sair').hidden=true;
@@ -61,9 +64,10 @@ async function render(){
    balcao=data;
    const detalhe=a=>[a.turma,['Manhã','Tarde','Noite'][a.turno],a.horario].filter(Boolean).join(' · ');
    const abertas=data.abertas.map(m=>row(m.aula.sala,br(m.dia)+' · '+detalhe(m.aula),btn('Devolver','entregar',m.id))).join('');
-   const aulas=data.aulas.map(a=>row(a.sala,detalhe(a),a.ocupada?'Chave em uso':btn('Retirar','pegar',a.indice,'primary'))).join('');
+   const botoesTurno=['Manhã','Tarde','Noite'].map((t,i)=>'<button type="button" data-action="turno" data-id="'+i+'" aria-pressed="'+(i===turnoBalcao)+'" class="'+(i===turnoBalcao?'primary':'')+'">'+t+'</button>').join('');
+   const aulas=data.aulas.filter(a=>a.turno===turnoBalcao).map(a=>row(a.sala,detalhe(a),a.ocupada?'Chave em uso':btn('Retirar','pegar',a.indice,'primary'))).join('');
    $('#page').innerHTML=tools('Balcão · '+br(data.dia),btn('Atualizar lista','retry'))+
-     (abertas?'<h2>Devolver uma chave</h2>'+abertas:'')+'<h2>Retirar para uma aula</h2>'+ (aulas||'<p>Nenhuma aula publicada para hoje.</p>');
+     (abertas?'<h2>Devolver uma chave</h2>'+abertas:'')+'<h2>Retirar para uma aula</h2><nav class="buttons" aria-label="Turno da retirada">'+botoesTurno+'</nav>'+ (aulas||'<p>Nenhuma aula publicada neste turno.</p>');
  }else if(activeTab==='excel'){abrirImportacao($('#page'),api);
  }else if(activeTab==='relatorio'){
    const lista=await api('relatorio',{data:date});if(run!==generation)return;
@@ -81,6 +85,7 @@ const tools=(title,buttons)=>`<div class="tools no-print"><h2>${esc(title)}</h2>
 const row=(title,sub,actions)=>`<article class="row"><div><strong>${esc(title)}</strong><p class="muted">${esc(sub)}</p></div><div class="buttons">${actions}</div></article>`;
 const dateField=()=>`<label>Data<input id="date" type="date" value="${date}" required></label>`;
 async function act(action,id){
+ if(action==='turno'){turnoBalcao=Number(id);return render();}
  if(action==='retry')return render();
  if(action==='tab'){activeTab=id;return render();}
  if(action==='pdf-chaves'){

@@ -70,4 +70,9 @@ document.addEventListener('click',async e=>{
  else{const x=estado.itens.find(v=>v.id===b.dataset.vis);await salvar('visibilidade',{id:x.id,oculto:!x.oculto});}
  }catch(err){mensagem(err.message);}finally{b.disabled=false;}
 });
+function abrirSecao(){
+ const ids=['config','divulgacoes','conteudo'];const atual=ids.includes(location.hash.slice(1))?location.hash.slice(1):'config';
+ for(const id of ids){el('#'+id).hidden=id!==atual;el('.menu-editor a[href="#'+id+'"]').setAttribute('aria-current',id===atual?'page':'false');}
+}
+window.addEventListener('hashchange',abrirSecao);abrirSecao();
 limpar();carregar().catch(e=>mensagem(e.message+' Acesse a Área restrita para entrar.'));

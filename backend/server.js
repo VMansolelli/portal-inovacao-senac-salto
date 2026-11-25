@@ -10,6 +10,16 @@ export function createPortal(config, remote = fetch) {
   const adminIds = new Set([config.ADMIN_USER_ID, config.ADMIN_USER_IDS].filter(Boolean).join(',').split(',').map(id=>id.trim()).filter(Boolean));
   const masterId=config.ADMIN_USER_ID?.trim();
   const authorized=async user=>!!user?.email_confirmed_at && (adminIds.has(user.id) || await rpc('autorizado',{uid:user.id})===true);
+  const areasRpc=(op,p)=>rpc(op,p,'portal_areas_api');
+  async function areaConta(user){
+    if(!user?.email_confirmed_at)return null;
+    if(user.id===masterId)return 'ambas';
+    return await areasRpc('perfil',{uid:user.id}) || (adminIds.has(user.id)?'inovacao':null);
+  }
+  function escolherArea(area){
+    insist(['inovacao','totem','ambas'].includes(area),'Selecione uma área válida.');
+    return area;
+  }
   const digest=value=>createHash('sha256').update(value).digest('hex');
   const newCode=()=>randomBytes(24).toString('base64url');
   async function authAdmin(path,method,body){
@@ -87,7 +97,12 @@ export function createPortal(config, remote = fetch) {
       let staff;
       if(op.startsWith('admin/') || op.startsWith('master/')){
         staff=await verifiedUser(token);
-        insist(await authorized(staff),'Entre com a conta administrativa.',403);
+        const area=await areaConta(staff);
+        insist(area,'Entre com a conta administrativa.',403);
+        if(op.startsWith('admin/')&&!['admin/perfil','admin/reserva'].includes(op)){
+          const exigida=(op==='admin/totem'||op.startsWith('admin/totem/')||['admin/noticias','admin/moderar-noticia','admin/editar-noticia','admin/excluir-noticia','admin/arquivar-noticia'].includes(op))?'totem':'inovacao';
+          insist(area==='ambas'||area===exigida,'Sua conta não tem acesso a esta área.',403);
+        }
         if(op.startsWith('master/'))insist(staff.id===masterId,'Acesso exclusivo do administrador principal.',403);
       }
       const mapRequest=op.startsWith('mapa/');
@@ -112,10 +127,15 @@ export function createPortal(config, remote = fetch) {
         if(op==='admin/perfil')return reply(200,{master:staff.id===masterId});
         if(op==='master/lista')return reply(200,await rpc(op));
         if(op==='salas')return reply(200,await mapRpc('salas',{}));
-        if(['admin/lista','publico'].includes(op))return reply(200,await rpc(op));
+        if(op==='publico')return reply(200,await rpc(op));
+        if(['admin/lista','admin/noticias'].includes(op)){
+          const noticias=op==='admin/noticias';
+          return reply(200,(await rpc('admin/lista')).filter(item=>(item.kind==='noticia')===noticias));
+        }
         if(op.startsWith('admin/inscritos/'))return reply(200,await rpc('admin/inscritos',{id:op.slice(16)}));
         if(op.startsWith('foto/')){
-          const src=await rpc(token && await admin(token)?'admin/foto':'foto',{id:op.slice(5)});
+          const area=token?await areaConta(await verifiedUser(token)):null;
+          const src=area?await areasRpc('foto',{area,id:op.slice(5)}):await rpc('foto',{id:op.slice(5)});
           insist(src,'Foto não encontrada.',404);
           res.writeHead(200,{'Content-Type':'image/jpeg','Cache-Control':'private, no-store'});return res.end(Buffer.from(src.split(',')[1],'base64'));
         }
@@ -220,12 +240,13 @@ export function createPortal(config, remote = fetch) {
         case 'solicitar': {
           const d=fields(b,['nome','email']);
           insist(d.email.endsWith('@sp.senac.br'),'Use seu e-mail institucional @sp.senac.br.');
-          return reply(200,await accessRpc(action,d));
+          return reply(200,mapRequest?await accessRpc(action,d):await areasRpc(action,{...d,area:b.area==='totem'?'totem':'inovacao'}));
         }
         case 'master/aprovar': {
           const {id}=fields(b,['id']),codigo=newCode();
-          await accessRpc(action,{id,digest:digest(codigo)});return reply(200,{codigo});
+          if(mapRequest)await accessRpc(action,{id,digest:digest(codigo)});else await areasRpc(action,{id,digest:digest(codigo),area:escolherArea(b.area??'inovacao')});return reply(200,{codigo});
         }
+        case 'master/area':return reply(200,await areasRpc(action,{...fields(b,['id']),area:escolherArea(b.area)}));
         case 'master/rejeitar':return reply(200,await accessRpc(action,fields(b,['id'])));
         case 'ativar': {
           const {email,codigo}=fields(b,['email','codigo']);
@@ -283,6 +304,7 @@ export function createPortal(config, remote = fetch) {
           insist(r.ok,'E-mail ou senha inválidos.',403);
           const s=await r.json();
           insist(await (mapRequest?mapAllowed(s.user):authorized(s.user)) && s.access_token,'Conta sem acesso administrativo.',403);
+          if(!mapRequest && b.area){const permitida=await areaConta(s.user);insist(permitida==='ambas'||permitida===b.area,'Sua conta não tem acesso a esta área.',403);}
           res.setHeader('Set-Cookie',sessionCookie(s.access_token,Math.max(1,Math.floor(s.expires_in))));
           return reply(200,{ok:true});
         }
@@ -304,7 +326,7 @@ export function createPortal(config, remote = fetch) {
         case 'admin/excluir-noticia':data=fields(b,['id']);break;
         case 'admin/acao':data={...fields(b,['titulo','descricao']),imagem:photo(b)};break;
         case 'admin/editar':{const rooms=new Map(await mapRpc('salas',{}));data={...workshop(b,true,rooms),...fields(b,['id']),localLegado:!rooms.has(b.local)};break;}
-        case 'admin/moderar':data=fields(b,['id','status']);insist(['aprovada','arquivada'].includes(data.status),'Decisão inválida.');break;
+        case 'admin/moderar':case 'admin/moderar-noticia':data=fields(b,['id','status']);insist(['aprovada','arquivada'].includes(data.status),'Decisão inválida.');return reply(200,await areasRpc('moderar',{...data,kind:op==='admin/moderar'?'oficina':'noticia'}));
         case 'admin/apagar':data=fields(b,['id']);break;
         default: return reply(404,{erro:'Página não encontrada.'});
       }

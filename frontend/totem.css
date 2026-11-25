@@ -6,3 +6,9 @@ dialog{width:min(36rem,92vw);max-height:88dvh;overflow:auto;border:1px solid var
 .editor{font-size:16px}.editor main{max-width:850px}.editor section{background:white;border:1px solid var(--line);border-radius:.8rem;padding:1rem}.editor article{display:flex;align-items:center;gap:.4rem;border-top:1px solid var(--line);margin-top:.6rem;padding-top:.6rem}.editor article div{flex:1}.editor article p{margin:0}.editor #msg:not(:empty){position:sticky;top:0;background:#fff0dc;padding:.6rem}#status:empty{display:none}
 @media(max-width:540px){#horarios,.periodo{grid-template-columns:1fr}header{gap:.4rem}.editor article{flex-wrap:wrap}}
 .paginacao{display:flex;align-items:center;justify-content:flex-end;gap:.5rem}.planta{position:relative;background:linear-gradient(90deg,#edf2f6 46%,#d2dce6 46%,#d2dce6 54%,#edf2f6 54%);border:2px solid #7890a3}.planta span{border-radius:3px;font-size:.9rem}
+
+.editor #painel:not([hidden]){display:grid;grid-template-columns:minmax(155px,210px) minmax(0,1fr);gap:1rem;align-items:start}
+.menu-editor{display:grid;gap:4px;padding:.5rem;background:white;border:1px solid #ccdae3;border-radius:12px}
+.menu-editor a{padding:.75rem;color:#004580;text-decoration:none;border-radius:6px}.menu-editor a[aria-current=page]{color:white;background:#004580}
+.editor #painel section[hidden]{display:none}
+@media(max-width:720px){.editor #painel:not([hidden]){grid-template-columns:1fr}.menu-editor{grid-template-columns:1fr 1fr}}

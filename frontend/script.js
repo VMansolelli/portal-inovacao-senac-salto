@@ -36,7 +36,8 @@ $('.two-col',originalWorkshop).insertAdjacentHTML('afterend',field('email','E-ma
 originalWorkshop.className='form-grid';
 originalWorkshop.querySelector('[type=submit]').insertAdjacentHTML('beforebegin',field('imagem','Imagem da oficina (opcional)','file',false));
 const wkForm=originalWorkshop.outerHTML;
-let timer, publicRows=[], adminRows=[], tab='noticia';
+const areaTotem=new URLSearchParams(location.search).get('painel')==='totem';
+let timer, publicRows=[], adminRows=[], tab=areaTotem?'noticia':'acao';
 function notify(msg) {
   const toast=$('#feedback'); toast.textContent=msg;toast.classList.add('show');
   clearTimeout(timer);timer=setTimeout(()=>toast.classList.remove('show'),4500);
@@ -180,7 +181,7 @@ async function refreshPublic(){
   $('#saberesLista').innerHTML=cards('oficina',w=>`<article class="oficina-card"><div class="oficina-info">${picture(w)}<h4>${esc(w.titulo)}</h4><div class="oficina-meta"><span>${workshopDetails(w)}</span></div></div>${w.inscritos<w.vagas?btn('Inscrever-se','inscrever',w.id):'<span class="vagas-badge">Vagas esgotadas</span>'}</article>`,'Nenhuma oficina aprovada no momento.');
 }
 let master=false, requests=[];
-const tabs={noticia:'Notícias',acao:'Ações locais',oficina:'Oficinas',email:'E-mails',inscritos:'Inscritos e PDF',ideia:'Ideias'};
+const tabs=areaTotem?{noticia:'Notícias'}:{acao:'Ações locais',oficina:'Oficinas',email:'E-mails',inscritos:'Inscritos e PDF',ideia:'Ideias'};
 function adminCard(r){
   let content='',actions='';
   if(r.kind==='oficina'){
@@ -201,10 +202,10 @@ function renderAdmin(){
   $('#reserve').hidden=false;$('#logout').hidden=false;
   let records=adminRows.filter(r=>r.kind===tab);
   let content='';
-  const sections=master?{...tabs,acessos:'Autorizar administradores'}:tabs;
-  if(!sections[tab])tab='noticia';
+  const sections=master&&!areaTotem?{...tabs,acessos:'Autorizar administradores'}:tabs;
+  if(!sections[tab])tab=Object.keys(sections)[0];
   if(tab==='acessos' && master){
-    content=requests.map(r=>`<article class="admin-row"><div><b>${esc(r.nome)}</b><p>${esc(r.email)} · ${esc(r.estado)}</p></div><div class="admin-actions">${r.estado==='ativa'?'':btn(r.estado==='aguarda ativação'?'Gerar novo convite':'Aprovar','aprovar-acesso',r.id)}${['pendente','aguarda ativação'].includes(r.estado)?btn('Rejeitar','rejeitar-acesso',r.id):''}</div></article>`).join('');
+    content=requests.map(r=>`<article class="admin-row"><div><b>${esc(r.nome)}</b><p>${esc(r.email)} · ${esc(r.estado)}</p></div><div class="admin-actions"><label>Área autorizada<select data-escopo>${[['inovacao','Inovação'],['totem','Totem e notícias'],['ambas','Ambas']].map(([k,v])=>'<option value="'+k+'" '+((r.area||'inovacao')===k?'selected':'')+'>'+v+'</option>').join('')}</select></label>${r.estado==='ativa'?btn('Salvar acesso','salvar-area',r.id):btn(r.estado==='aguarda ativação'?'Gerar novo convite':'Aprovar','aprovar-acesso',r.id)}${['pendente','aguarda ativação'].includes(r.estado)?btn('Rejeitar','rejeitar-acesso',r.id):''}</div></article>`).join('');
   }else if(tab==='ideia'){
     for(const [status,title] of [['pendente','Recebidas'],['arquivada','Arquivadas']]){
       const group=records.filter(r=>r.status===status);
@@ -219,12 +220,12 @@ function renderAdmin(){
       content+=`<h3 class="admin-heading">${title} <span>${group.length}</span></h3>`+(group.map(adminCard).join('')||'<p>Nenhum registro.</p>');
     }
   }else content=records.map(adminCard).join('');
-  panel.innerHTML=`<div class="management"><nav class="admin-tabs" aria-label="Seções do painel"><a class="admin-tab" href="/totem-editor.html">Totem</a>${Object.entries(sections).map(([k,v])=>`<button type="button" class="admin-tab ${tab===k?'active':''}" aria-current="${tab===k?'page':'false'}" data-tab="${k}">${v}</button>`).join('')}</nav><section class="management-main"><h2>${sections[tab]}</h2>${tab==='acao'?btn('Adicionar ação local','nova'):''}${content||'<p>Nenhum registro recebido.</p>'}</section></div>`;
+  panel.innerHTML=`<div class="management"><nav class="admin-tabs" aria-label="Seções do painel">${areaTotem?'<a class="admin-tab" href="/totem-editor.html">Totem</a>':''}${Object.entries(sections).map(([k,v])=>`<button type="button" class="admin-tab ${tab===k?'active':''}" aria-current="${tab===k?'page':'false'}" data-tab="${k}">${v}</button>`).join('')}</nav><section class="management-main"><h2>${sections[tab]}</h2>${tab==='acao'?btn('Adicionar ação local','nova'):''}${content||'<p>Nenhum registro recebido.</p>'}</section></div>`;
 }
 async function refreshBoth(){await Promise.all([refreshPublic(),loadAdmin()]);}
 async function loadAdmin(){
   try{
-    const [rows,profile]=await Promise.all([api('admin/lista'),api('admin/perfil')]);
+    const [rows,profile]=await Promise.all([api(areaTotem?'admin/noticias':'admin/lista'),api('admin/perfil')]);
     adminRows=rows;master=profile.master===true;
     requests=master && tab==='acessos'?await api('master/lista'):[];
     renderAdmin();
@@ -240,7 +241,7 @@ async function loadAdmin(){
         <div class="login-art" aria-hidden="true"></div>
       </div>
       <form class="login-form" aria-labelledby="login-title">
-        <h2 id="login-title">Acesso administrativo</h2>
+        <h2 id="login-title">${areaTotem?'Acesso ao Totem':'Acesso à Inovação'}</h2>
         <p class="login-intro">Entre com sua conta institucional para gerenciar o portal.</p>
         <label for="login-email">E-mail institucional</label>
         <input id="login-email" type="email" name="email" autocomplete="username" placeholder="nome@sp.senac.br" required>
@@ -261,7 +262,7 @@ async function loadAdmin(){
     $('.login-art',panel).append(art);
     const form=$('form',panel);
     $('#request-access').onclick=()=>formPopup('Solicitar acesso','Seu pedido será avaliado por Victor.',field('nome','Nome')+field('email','E-mail institucional','email'),'Enviar solicitação',async d=>{
-      await api('solicitar',d);dialog.close();$('.login-intro',panel).textContent='Solicitação registrada. Aguarde o contato de Victor.';
+      await api('solicitar',{...d,area:areaTotem?'totem':'inovacao'});dialog.close();$('.login-intro',panel).textContent='Solicitação registrada. Aguarde o contato de Victor.';
     });
     $('#activate-access').onclick=()=>credentialForm(true);
     $('#forgot').onclick=()=>recoveryForm(form.elements.email.value);
@@ -278,7 +279,7 @@ async function loadAdmin(){
       const error=$('[role=alert]',form);
       error.textContent='';
       submit.textContent='Entrando…';
-      try{await api('entrar',data);form.reset();await loadAdmin();}
+      try{await api('entrar',{...data,area:areaTotem?'totem':'inovacao'});form.reset();await loadAdmin();}
       catch(err){error.textContent=err.message;submit.innerHTML='Entrar no painel <span aria-hidden="true">→</span>';}
     });
   }
@@ -334,7 +335,7 @@ function handleRecoveryLink(){
   dialog.addEventListener('close',()=>$('#popupBody').replaceChildren(),{once:true});
   return true;
 }
-async function adminOpen(){if(!admin.open)admin.showModal();panel.textContent='Carregando painel…';await loadAdmin();}
+async function adminOpen(){$('.restrito-top strong').textContent=areaTotem?'Área restrita do Totem':'Área de Inovação';if(!admin.open)admin.showModal();panel.textContent='Carregando painel…';await loadAdmin();}
 function message(w){
   const subject='Oficina '+w.titulo;
   const body=w.status==='aprovada'?`Olá, ${w.docente}! Sua oficina “${w.titulo}” foi aprovada para ${date(w.data)}, das ${w.inicio} às ${w.termino}, em ${w.local}.`:w.status==='arquivada'?`Olá, ${w.docente}! Agradecemos a proposta “${w.titulo}”. Nesta edição, ela foi arquivada.`:`Olá, ${w.docente}! Gostaríamos de conversar sobre a proposta “${w.titulo}”.`;
@@ -346,11 +347,12 @@ function message(w){
 async function action(button){
   const op=button.dataset.do,id=button.dataset.id;
   const w=(op==='inscrever'?publicRows:adminRows).find(r=>r.id===id);
+  if(op==='salvar-area'){await api('master/area',{id,area:button.closest('article').querySelector('[data-escopo]').value});await loadAdmin();return;}
   if(op==='aprovar-acesso' || op==='rejeitar-acesso'){
     const r=requests.find(item=>item.id===id);if(!master||!r)return;
     const approve=op==='aprovar-acesso';
     if(!confirm((approve?'Autorizar ':'Rejeitar ')+r.email+'?'))return;
-    const reply=await api(approve?'master/aprovar':'master/rejeitar',{id});
+    const reply=await api(approve?'master/aprovar':'master/rejeitar',{id,area:button.closest('article').querySelector('[data-escopo]').value});
     if(approve)showCode('Convite de ativação','Entregue este convite apenas à pessoa identificada em '+r.email+'. É válido por 24 horas.',reply.codigo);
     await loadAdmin();return;
   }
@@ -435,7 +437,7 @@ async function action(button){
   if(op==='apagar'){
     if(!confirm('Apagar a ação “'+w.titulo+'” do portal?'))return;
     await api('admin/apagar',{id});
-  }else await api('admin/moderar',{id,status:op});
+  }else await api(areaTotem?'admin/moderar-noticia':'admin/moderar',{id,status:op});
   await refreshBoth();
 }
 function showCode(title,hint,code){
@@ -461,7 +463,7 @@ admin.onclose=()=>{$('#reserve').hidden=true;$('#logout').hidden=true;master=fal
 $('#closePopup').onclick=()=>dialog.close();
 $('#openNoticiaModal').onclick=()=>news();
 $('#openOficinaForm').onclick=()=>workshop();
-$('#navRestrito').onclick=adminOpen;
+$('#navRestrito').onclick=()=>{if(areaTotem)location.href='/?painel';else adminOpen();};
 const burger=$('#burgerBtn'), nav=$('#navLinks');
 nav.before(burger);
 burger.setAttribute('aria-controls',nav.id);
