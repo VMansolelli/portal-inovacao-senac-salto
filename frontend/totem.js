@@ -135,7 +135,7 @@ function ofertas(){
    if(origem){capa.onerror=()=>{capa.hidden=true;};capa.src=origem;}
    else capa.removeAttribute('src');
  }
- capa.classList.toggle('arte-reserva',foto||convite);
+ capa.classList.toggle('arte-reserva',convite);
  capa.alt=foto?'Foto da comunidade Senac Salto':'';
  el('#convite-foto').hidden=!convite;
  el('#convite-foto').classList.toggle('com-arte',Boolean(origem));
