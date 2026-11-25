@@ -184,6 +184,20 @@ export function createPortal(config, remote = fetch) {
         else insist(false,'Página não encontrada.',404);
         return reply(200,await rpc(acao,d,'totem_api'));
       }
+      if(mapRequest&&['excel-consultar','excel-publicar'].includes(action)){
+        day(b.data);
+        const p={data:b.data};
+        if(action==='excel-publicar'){
+          insist(b.revisao===null||typeof b.revisao==='string','Confira o mapa novamente.');
+          insist(Array.isArray(b.aulas)&&b.aulas.length>0&&b.aulas.length<=500,'Selecione entre 1 e 500 atividades.');
+          p.revisao=b.revisao;
+          p.aulas=b.aulas.map(a=>{
+            insist(a&&[0,1,2].includes(a.turno),'Turno inválido.');
+            return {...fields(a,['turma','sala'],['docente','horario']),turno:a.turno};
+          });
+        }
+        return reply(200,await rpc(action,p,'mapa_excel_api'));
+      }
       let data;
       if(mapRequest && ['dia','pin-dia','retirar','devolver','criar','alterar','cancelar','cadastro','desativar','reativar','pin','recesso','remover-recesso','historico','corrigir'].includes(action)){
         let payload=prepareMap(action,b);let generated;

@@ -11,7 +11,7 @@ const input=(label,name,type='text',value='',attrs='required')=>`<label>${label}
 const select=(label,name,items,selected='',required=true)=>`<label>${label}<select name="${name}" ${required?'required':''}><option value="">Selecione</option>${items.map(([v,l])=>`<option value="${esc(v)}" ${v===selected?'selected':''}>${esc(l)}</option>`).join('')}</select></label>`;
 const submit=t=>`<button class="accent" type="submit">${esc(t)}</button>`;
 const labelType={sala:'Salas',curso:'Cursos',turma:'Turmas',docente:'Docentes'};
-const tabs={agenda:'Reservas',cadastros:'Cadastros',calendario:'Calendário',chaves:'Chaves e histórico',acessos:'Permissões'};
+const tabs={agenda:'Reservas',excel:'Mapa do Excel',cadastros:'Cadastros',calendario:'Calendário',chaves:'Chaves e histórico',acessos:'Permissões'};
 let staff=null,pin='',activeTab='agenda',date=nowDay(),week=false,category='sala',catalog=[],board={},leases=[],generation=0;
 const desk=()=>location.hash==='#chaves';
 function say(msg){$('#status').textContent=msg;}
@@ -66,6 +66,7 @@ async function render(){
   const data=await api(mode?'pin-dia':'dia',{data:date,semana:!mode&&week,...(mode?{pin}:{})});
   if(run!==generation)return;
   board=data;if(mode)await showDesk();else {showBoard(false);$('#print').hidden=false;}
+ }else if(activeTab==='excel'){abrirImportacao($('#page'),api);
  }else if(activeTab==='cadastros'){
   const c=await api('catalogo');if(run!==generation)return;catalog=c;showCatalog();
  }else if(activeTab==='calendario'){

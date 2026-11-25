@@ -36,12 +36,12 @@ for(const evento of ['pointerdown','keydown'])document.addEventListener(evento,a
 function grade(){
  const turno=escolha??turnoHora(horaAtual());
  for(const b of el('#turnos').querySelectorAll('button'))b.setAttribute('aria-pressed',String(Number(b.dataset.turno)===turno));
- const lista=(dados?.dia===diaAtual()?dados.aulas:[]).filter(a=>turnoHora(a.inicio)===turno);
+ const lista=(dados?.dia===diaAtual()?dados.aulas:[]).filter(a=>(a.turno??turnoHora(a.inicio))===turno);
  const porPagina=20;
  const total=Math.max(1,Math.ceil(lista.length/porPagina));pagina%=total;
  el('#pagina').textContent=total>1?(pagina+1)+' de '+total:'';
  const linhas=lista.slice(pagina*porPagina,(pagina+1)*porPagina);
- el('#aulas').innerHTML=linhas.map(a=>'<tr><td>'+h(a.turma)+'</td><td>'+h(a.sala)+'</td><td>'+h(a.docente)+'</td><td>'+h(a.inicio.slice(0,5))+'–'+h(a.fim.slice(0,5))+'</td></tr>').join('')||(dados?'<tr><td colspan="4">Sem aulas neste turno.</td></tr>':'');
+ el('#aulas').innerHTML=linhas.map(a=>'<tr><td>'+h(a.turma)+'</td><td>'+h(a.sala)+'</td><td>'+h(a.docente||'—')+'</td><td>'+h(a.horario||(a.inicio&&a.fim?a.inicio.slice(0,5)+'–'+a.fim.slice(0,5):'—'))+'</td></tr>').join('')||(dados?'<tr><td colspan="4">Sem aulas neste turno.</td></tr>':'');
 
 }
 function faixa(){
