@@ -181,7 +181,7 @@ async function refreshPublic(){
   $('#saberesLista').innerHTML=cards('oficina',w=>`<article class="oficina-card"><div class="oficina-info">${picture(w)}<h4>${esc(w.titulo)}</h4><div class="oficina-meta"><span>${workshopDetails(w)}</span></div></div>${w.inscritos<w.vagas?btn('Inscrever-se','inscrever',w.id):'<span class="vagas-badge">Vagas esgotadas</span>'}</article>`,'Nenhuma oficina aprovada no momento.');
 }
 let master=false, requests=[];
-const tabs=areaTotem?{noticia:'Notícias',config:'Configurações',divulgacoes:'Divulgações',conteudo:'Conteúdo do portal'}:{acao:'Ações locais',oficina:'Oficinas',email:'E-mails',inscritos:'Inscritos e PDF',ideia:'Ideias'};
+const tabs=areaTotem?{noticia:'Notícias',config:'Configurações',divulgacoes:'Divulgações',galeria:'Fotos da comunidade',conteudo:'Conteúdo do portal'}:{acao:'Ações locais',oficina:'Oficinas',email:'E-mails',inscritos:'Inscritos e PDF',ideia:'Ideias'};
 function adminCard(r){
   let content='',actions='';
   if(r.kind==='oficina'){
@@ -204,7 +204,7 @@ function renderAdmin(){
   let content='';
   const sections=master&&!areaTotem?{...tabs,acessos:'Autorizar administradores'}:tabs;
   if(!sections[tab])tab=Object.keys(sections)[0];
-  const editorTotem=areaTotem&&['config','divulgacoes','conteudo'].includes(tab);
+  const editorTotem=areaTotem&&['config','divulgacoes','galeria','conteudo'].includes(tab);
   if(editorTotem){
     content='<iframe class="editor-integrado" title="'+sections[tab]+'" src="/totem-editor.html?integrado#'+tab+'" style="width:100%;border:0;display:block;height:25rem"></iframe>';
   }else if(tab==='acessos' && master){

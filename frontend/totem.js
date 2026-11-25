@@ -106,25 +106,44 @@ function centro(){
  }
  function avancar(){indiceCentro++;chaveCentro=null;centro();}
 }
+function itensSaberes(){
+ const oficinas=(dados?.itens||[]).filter(item=>item.tipo==='oficina');
+ const fotos=dados?.fotos||[];
+ const fila=[];
+ for(let i=0;i<Math.max(1,oficinas.length,fotos.length);i++){
+   if(oficinas[i])fila.push(oficinas[i]);
+   if(i===0)fila.push({tipo:'convite'});
+   if(fotos[i])fila.push({tipo:'foto',foto:'/api/galeria/'+encodeURIComponent(fotos[i])});
+ }
+ return fila;
+}
+function conviteFoto(){
+ abrir('<h2>Sua foto no Senac Salto</h2><div id="qr-envio"></div><p>Aponte a câmera do celular para escolher e enviar sua foto.</p><button id="envio-local">Enviar por este aparelho</button>');
+ desenharQR(el('#qr-envio'),new URL('enviar-foto.html',location.href).href);
+ el('#envio-local').onclick=()=>abrir('<iframe title="Enviar foto para avaliação" class="form-foto" src="enviar-foto.html"></iframe>');
+}
 function ofertas(){
  centro();
- const oficinas=(dados?.itens||[]).filter(x=>x.tipo==='oficina');
- el('#oficina-setas').hidden=oficinas.length<2;
- oficinaAtual=oficinas[oportunidade%oficinas.length];
+ const fila=itensSaberes(),item=fila[oportunidade%fila.length];
+ const convite=item.tipo==='convite',foto=item.tipo==='foto';
+ oficinaAtual=item.tipo==='oficina'?item:null;
+ el('#oficina-setas').hidden=fila.length<2;
  el('#avaliacao').hidden=!desenharQR(el('#qr-avaliacao'),dados?.horarios?.avaliacao);
- const capa=el('#oficina-foto');
- const reserva=!oficinaAtual&&dados?.horarios?.arte_reserva;
- const origem=oficinaAtual?.foto||reserva||'';
+ const capa=el('#oficina-foto'),origem=item.foto||(convite&&dados?.horarios?.arte_reserva)||'';
  if(capa.dataset.origem!==origem){
    capa.dataset.origem=origem;capa.hidden=!origem;
-   capa.classList.toggle('arte-reserva',Boolean(reserva));capa.alt=reserva?'Saberes em Movimento':'';
-   if(origem){capa.onerror=()=>{capa.hidden=true;el('.oficina-copy').hidden=false;};capa.src=origem;}
+   if(origem){capa.onerror=()=>{capa.hidden=true;};capa.src=origem;}
    else capa.removeAttribute('src');
  }
- el('.oficina-copy').hidden=Boolean(reserva&&!capa.hidden);
- el('#oficina').textContent=oficinaAtual?.titulo||'Sem oficina no momento';
- el('#inscrever').hidden=!oficinaAtual;
- el('#inscrever').textContent=oficinaAtual&&Number(oficinaAtual.vagas)>oficinaAtual.inscritos?'Inscreva-se →':'Ver oficina →';
+ capa.classList.toggle('arte-reserva',foto||convite);
+ capa.alt=foto?'Foto da comunidade Senac Salto':'';
+ el('#convite-foto').hidden=!convite;
+ el('#convite-foto').classList.toggle('com-arte',Boolean(origem));
+ el('.oficina-copy').hidden=convite;
+ el('.oficina-copy small').textContent=foto?'Senac Salto':'Saberes em Movimento';
+ el('#oficina').textContent=foto?'Fotos da comunidade':item.titulo||'';
+ el('#inscrever').hidden=convite;
+ el('#inscrever').textContent=foto?'Envie sua foto →':Number(item.vagas)>item.inscritos?'Inscreva-se →':'Ver oficina →';
 }
 async function atualizar(){
  if(ocupado)return;ocupado=true;
@@ -135,10 +154,10 @@ async function atualizar(){
 let giroOficinas;
 function programarOficinas(){
  clearTimeout(giroOficinas);
- giroOficinas=setTimeout(()=>{oportunidade++;ofertas();programarOficinas();},15000);
+ giroOficinas=setTimeout(()=>{oportunidade++;ofertas();programarOficinas();},30000);
 }
 function navegar(tipo,passo){
- const total=(dados?.itens||[]).filter(x=>x.tipo===tipo).length;
+ const total=tipo==='oficina'?itensSaberes().length:(dados?.itens||[]).filter(x=>x.tipo===tipo).length;
  if(total<2)return;
  if(tipo==='oficina'){
    oportunidade=(oportunidade+passo+total)%total;
@@ -164,9 +183,10 @@ function configurarCartao(botaoId,faceId){
 desenharQR(el('#qr-instagram'),'https://www.instagram.com/senacsalto/');
 configurarCartao('#abrir-instagram','#face-instagram');
 configurarCartao('#abrir-avaliacao','#face-qr');
-el('#inscrever').onclick=()=>{if(oficinaAtual)detalhe(oficinaAtual);};
+el('#convite-foto').onclick=conviteFoto;
+el('#inscrever').onclick=()=>oficinaAtual?detalhe(oficinaAtual):conviteFoto();
 let espera;
-function limparDepois(){clearTimeout(espera);if(el('#detalhe').open)espera=setTimeout(()=>el('#detalhe').close(),60000);}
+function limparDepois(){clearTimeout(espera);if(el('#detalhe').open)espera=setTimeout(()=>el('#detalhe').close(),el('.form-foto')?300000:60000);}
 el('.fechar').onclick=()=>el('#detalhe').close();
 el('#detalhe').onclose=()=>{clearTimeout(espera);el('#detalheBody').replaceChildren();};
 for(const ev of ['click','input','keydown'])document.addEventListener(ev,limparDepois);

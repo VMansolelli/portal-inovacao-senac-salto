@@ -61,3 +61,10 @@ main{grid-template-rows:6.5% auto minmax(0,1fr) minmax(10%,.36fr) auto}
 .luz-chave.acesa,.legenda-chave i{background:#ed871a;border-color:#b0600b;box-shadow:0 0 .3em #f7941d99}
 .legenda-chave{display:block;text-align:right;color:#445b6b;font-size:.58rem;margin:.13rem .15rem}
 .oficinas>img.arte-reserva{object-fit:contain;background:white}
+
+#convite-foto{position:absolute;inset:0;width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.3em;border:0;color:white;background:#004a8d;font:inherit;cursor:pointer}
+#convite-foto.com-arte{justify-content:flex-end;background:linear-gradient(transparent 35%,#00365fee);padding-bottom:.5em}
+#convite-foto span{color:#00365f;background:white;border-radius:.3em;padding:.25em .6em;font-weight:bold}
+#convite-foto[hidden],.quadrados .oficina-copy[hidden]{display:none}
+#qr-envio svg{display:block;width:min(60vw,260px);margin:auto}
+.form-foto{border:0;width:100%;height:65vh}

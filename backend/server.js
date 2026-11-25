@@ -115,6 +115,14 @@ export function createPortal(config, remote = fetch) {
       if(mapRequest && !['balcao','pegar','entregar','relatorio','excel-consultar','excel-publicar','perfil','entrar','ativar','solicitar','master/lista','master/aprovar','master/rejeitar'].includes(action))
         return reply(410,{erro:'O Apoio agora utiliza o mapa publicado pelo Excel.'});
       if(req.method==='GET'){
+        if(op==='admin/totem/galeria')return reply(200,await rpc('lista',{},'fotos_comunidade_api'));
+        const imagemGaleria=op.match(/^(galeria|admin\/totem\/galeria)\/([0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12})$/i);
+        if(imagemGaleria){
+          const src=await rpc(imagemGaleria[1]==='galeria'?'publica':'revisao',{id:imagemGaleria[2]},'fotos_comunidade_api');
+          insist(src,'Foto indisponível.',404);
+          res.writeHead(200,{'Content-Type':'image/jpeg','Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'});
+          return res.end(Buffer.from(src.split(',')[1],'base64'));
+        }
         if(['totem','admin/totem'].includes(op)){
           const info=await rpc(op==='totem'?'tela':'editor',{},'totem_api');
           for(const a of info.avisos)if(a.arquivo)a.video=new URL('/storage/v1/object/public/totem-videos/'+encodeURIComponent(a.arquivo),base).href;
@@ -143,6 +151,14 @@ export function createPortal(config, remote = fetch) {
       insist(req.method==='POST','Página não encontrada.',404);
       const b=await read(req);
       if(op==='totem/inscrever')return reply(201,await rpc('inscrever',fields(b,['nome','email','workshop'],['cargo','area']),'totem_api'));
+      if(op==='galeria/enviar'){
+        limitarMovimentos(req);insist(b.aceite===true,'Confirme a autorização para exibir a foto.');
+        return reply(201,await rpc('enviar',{imagem:photo(b)},'fotos_comunidade_api'));
+      }
+      if(op==='admin/totem/galeria/decidir'){
+        insist(['aprovar','rejeitar','arquivar'].includes(b.decisao)&&/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(b.id),'Decisão ou foto inválida.');
+        return reply(200,await rpc(b.decisao,{id:b.id},'fotos_comunidade_api'));
+      }
       if(op.startsWith('admin/totem/')){
         const acao=op.slice('admin/totem/'.length);
         if(acao==='upload'){

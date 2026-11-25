@@ -15,7 +15,12 @@ test('API pública, login, autorização, inscrições e logout',async t=>{
       const current=opts.headers.Authorization==='Bearer admin-token'?user:{...user,id:'another'};
       return Response.json(current);
     }
+    if(url.pathname==='/rest/v1/rpc/portal_areas_api'){
+      if(data.op==='perfil')return Response.json(null);
+      if(data.op==='moderar'){calls.push(data);return Response.json({ok:true});}
+    }
     if(url.pathname==='/rest/v1/rpc/mapa_api')return Response.json(data.op==='salas'?[...salas]:false);
+    if(url.pathname==='/rest/v1/rpc/chaves_excel_api'){calls.push(data);return Response.json({ok:true});}
     assert.equal(url.pathname,'/rest/v1/rpc/portal_api');
     assert.equal(opts.headers.apikey,'test-secret');
     calls.push(data);
@@ -48,6 +53,19 @@ test('API pública, login, autorização, inscrições e logout',async t=>{
   assert.equal((await req('admin/moderar',{id:'abc',status:'aprovada'},headers)).status,200);
   assert.equal((await req('inscrever',{workshop:'abc',email:'x@example.org',nome:'Aluno'})).status,409);
   assert.equal((await req('oficina',{})).status,400);
+  const oficina={id:'of1',titulo:'Oficina',docente:'Docente',email:'docente@example.org',area:'Arte',data:'2026-12-04',inicio:'14:00',termino:'17:30',local:'Lab Software 8',vagas:38};
+  for(const imagem of ['data:image/jpeg;base64,/9j/AA==','data:image/jpeg;base64,/9j/AQ==',undefined]){
+    assert.equal((await req('admin/editar',{...oficina,imagem},headers)).status,200);
+    assert.equal(calls.at(-1).p.imagem,imagem);
+  }
+  const mov={nome:'Nome informado',indice:0,revisao:'11111111-1111-4111-8111-111111111111',pedido:'22222222-2222-4222-8222-222222222222'};
+  assert.equal((await req('mapa/balcao',{})).status,200);
+  assert.equal((await req('mapa/pegar',mov)).status,200);
+  assert.equal(calls.at(-1).p.nome,mov.nome);
+  assert.equal((await req('mapa/pegar',{...mov,nome:' '})).status,400);
+  assert.equal((await req('mapa/entregar',{id:mov.pedido,nome:'Outra pessoa'})).status,200);
+  assert.equal((await req('mapa/relatorio',{data:'2026-11-25'})).status,403);
+  assert.equal((await req('mapa/relatorio',{data:'2026-11-25'},headers)).status,200);
   const noticia={id:'abc',titulo:'Projeto',turma:'T1',curso:'TI',descricao:'Texto',categoria:'Outro'};
   assert.equal((await req('admin/editar-noticia',noticia)).status,403);
   assert.equal((await req('admin/editar-noticia',noticia,headers)).status,200);
@@ -122,6 +140,12 @@ test('Solicitação, aprovação exclusiva do master e ativação',async t=>{
     const b=opts.body && JSON.parse(opts.body);
     if(url.pathname==='/auth/v1/user')return Response.json(users[opts.headers.Authorization.slice(7)]||{});
     if(url.pathname==='/auth/v1/admin/users')return Response.json({id:'novo'});
+    if(url.pathname==='/rest/v1/rpc/portal_areas_api'){
+      if(b.op==='perfil')return Response.json(b.p.uid==='staff'?'inovacao':b.p.uid==='redator'?'totem':null);
+      if(b.op==='solicitar'){requestCount++;return Response.json({ok:true});}
+      if(b.op==='master/aprovar'){inviteHash=b.p.digest;return Response.json({ok:true});}
+      if(b.op==='moderar'){assert.equal(b.p.kind,'noticia');return Response.json({ok:true});}
+    }
     assert.equal(url.pathname,'/rest/v1/rpc/portal_api');
     switch(b.op){
       case 'solicitar':requestCount++;return Response.json({ok:true});
@@ -136,6 +160,13 @@ test('Solicitação, aprovação exclusiva do master e ativação',async t=>{
   const s=createPortal({FRONTEND_ORIGIN:'https://portal.example',SUPABASE_URL:'https://db.example',ADMIN_USER_ID:'owner',ADMIN_USER_IDS:'staff',SUPABASE_PUBLISHABLE_KEY:'pk',SUPABASE_SECRET_KEY:'sk'},remote);
   s.listen(0,'127.0.0.1');await once(s,'listening');t.after(()=>new Promise(done=>s.close(done)));
   const call=(route,user,body)=>fetch('http://127.0.0.1:'+s.address().port+'/api/'+route,{method:body?'POST':'GET',headers:{cookie:'__Host-portal='+user,'content-type':'application/json'},body:body&&JSON.stringify(body)});
+  users.redator={id:'redator',email_confirmed_at:'ok'};
+  assert.equal((await call('admin/editar-acao','redator',{id:'teste'})).status,403);
+  assert.equal((await call('admin/inscritos/noticia','redator')).status,403);
+  assert.equal((await call('admin/totem','colega')).status,403);
+  assert.equal((await call('admin/editar-noticia','colega',{id:'teste'})).status,403);
+  assert.equal((await call('admin/moderar','redator',{id:'teste',status:'aprovada'})).status,403);
+  assert.equal((await call('admin/moderar-noticia','redator',{id:'teste',status:'aprovada'})).status,200);
   const data={nome:'Colega',email:'colega@sp.senac.br'};
   assert.equal((await call('solicitar','',data)).status,200);assert.equal(requestCount,1);
   for(const u of ['','colega']){

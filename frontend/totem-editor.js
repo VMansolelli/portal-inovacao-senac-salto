@@ -70,8 +70,29 @@ document.addEventListener('click',async e=>{
  else{const x=estado.itens.find(v=>v.id===b.dataset.vis);await salvar('visibilidade',{id:x.id,oculto:!x.oculto});}
  }catch(err){mensagem(err.message);}finally{b.disabled=false;}
 });
+async function listarFotos(){
+ const lista=el('#lista-fotos');
+ try{
+   const fotos=await pedido('admin/totem/galeria');
+   lista.innerHTML=['pendente','aprovada'].map(estado=>{
+     const grupo=fotos.filter(f=>f.estado===estado);
+     const botoes=estado==='pendente'?[['aprovar','Aprovar'],['rejeitar','Rejeitar']]:[['arquivar','Retirar de exibição']];
+     return '<h3>'+(estado==='pendente'?'Aguardando aprovação':'Em exibição')+' ('+grupo.length+')</h3><div class="grade-fotos">'+grupo.map(f=>'<article><img loading="lazy" alt="Foto enviada para o totem" src="/api/admin/totem/galeria/'+h(f.id)+'">'+botoes.map(([acao,texto])=>'<button data-foto="'+h(f.id)+'" data-decisao="'+acao+'">'+texto+'</button>').join('')+'</article>').join('')+'</div>';
+   }).join('');
+ }catch(err){mensagem(err.message);}
+}
+el('#atualizar-fotos').onclick=listarFotos;
+el('#lista-fotos').onclick=async e=>{
+ const b=e.target.closest('button[data-decisao]');if(!b)return;
+ if(b.dataset.decisao==='rejeitar'&&!confirm('Rejeitar e excluir esta foto?'))return;
+ b.disabled=true;
+ try{await pedido('admin/totem/galeria/decidir',{id:b.dataset.foto,decisao:b.dataset.decisao});mensagem('Decisão registrada.');}
+ catch(err){mensagem(err.message);}
+ finally{await listarFotos();b.disabled=false;}
+};
 function abrirSecao(){
- const ids=['config','divulgacoes','conteudo'];const atual=ids.includes(location.hash.slice(1))?location.hash.slice(1):'config';
+ const ids=['config','divulgacoes','galeria','conteudo'];const atual=ids.includes(location.hash.slice(1))?location.hash.slice(1):'config';
+ if(atual==='galeria')listarFotos();
  for(const id of ids){el('#'+id).hidden=id!==atual;el('.menu-editor a[href="#'+id+'"]').setAttribute('aria-current',id===atual?'page':'false');}
 }
 window.addEventListener('hashchange',abrirSecao);abrirSecao();
