@@ -12,7 +12,9 @@ function photoURL(row){
   return version && row.foto ? row.foto+'?v='+version : row.foto;
 }
 const picture = row => row.foto?`<img src="${esc(photoURL(row))}" alt="" loading="lazy" style="width:100%;max-height:240px;object-fit:cover;border-radius:12px">`:'';
-const workshopDetails = w=>`${esc(w.docente)} · ${esc(w.area)}<br>${date(w.data)} · ${esc(w.inicio)}–${esc(w.termino)} · ${esc(w.local)}<br>${w.vagas-w.inscritos} de ${w.vagas} vagas disponíveis`;
+const relogioOficinas=new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'});
+const encerrou=w=>w.data+' '+w.termino.slice(0,5)<=relogioOficinas.format(new Date());
+const workshopDetails = w=>`${esc(w.docente)} · ${esc(w.area)}<br>${date(w.data)} · ${esc(w.inicio)}–${esc(w.termino)} · ${esc(w.local)}<br>${encerrou(w)?'Inscrições encerradas':(w.vagas-w.inscritos)+' de '+w.vagas+' vagas disponíveis'}`;
 async function api(path,body) {
   const response=await fetch('/api/'+path, body?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}:{cache:'no-store'});
   const result=await response.json();
@@ -178,7 +180,7 @@ async function refreshPublic(){
   const cards=(kind,render,none)=>publicRows.filter(r=>r.kind===kind).map(render).join('')||empty(none);
   $('#muralGrid').innerHTML=cards('noticia',r=>`<article class="ncard">${picture(r)}<div class="ncard-body"><span class="tag">${esc(r.categoria)}</span><h4>${esc(r.titulo)}</h4><p>${esc(r.descricao)}</p><div class="meta">${[r.turma,r.curso,r.autor].filter(Boolean).map(esc).join(' · ')}</div></div></article>`,'Nenhuma notícia publicada. Envie a primeira notícia da unidade!');
   $('#acoesGrid').innerHTML=cards('acao',r=>`<article class="mcard acao-card">${picture(r)}<h4>${esc(r.titulo)}</h4><p>${esc(r.descricao)}</p></article>`,'Nenhuma ação local publicada.');
-  $('#saberesLista').innerHTML=cards('oficina',w=>`<article class="oficina-card"><div class="oficina-info">${picture(w)}<h4>${esc(w.titulo)}</h4><div class="oficina-meta"><span>${workshopDetails(w)}</span></div></div>${w.inscritos<w.vagas?btn('Inscrever-se','inscrever',w.id):'<span class="vagas-badge">Vagas esgotadas</span>'}</article>`,'Nenhuma oficina aprovada no momento.');
+  $('#saberesLista').innerHTML=cards('oficina',w=>`<article class="oficina-card"><div class="oficina-info">${picture(w)}<h4>${esc(w.titulo)}</h4><div class="oficina-meta"><span>${workshopDetails(w)}</span></div></div>${encerrou(w)?'<span class="vagas-badge">Oficina encerrada</span>':w.inscritos<w.vagas?btn('Inscrever-se','inscrever',w.id):'<span class="vagas-badge">Vagas esgotadas</span>'}</article>`,'Nenhuma oficina aprovada no momento.');
 }
 let master=false, requests=[];
 const tabs=areaTotem?{noticia:'Notícias',config:'Configurações',divulgacoes:'Divulgações',galeria:'Fotos da comunidade',conteudo:'Conteúdo do portal'}:{acao:'Ações locais',oficina:'Oficinas',email:'E-mails',inscritos:'Inscritos e PDF',ideia:'Ideias'};

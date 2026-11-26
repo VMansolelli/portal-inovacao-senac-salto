@@ -55,4 +55,8 @@ test('Totem público, edição pela Inovação e inscrição na oficina',async t
  assert.equal((await api('admin/totem/galeria/decidir',{id,decisao:'aprovar'})).status,403);
  assert.equal((await api('admin/totem/galeria/decidir',{id,decisao:'aprovar'},true)).status,200);
  assert.equal(calls.at(-1).op,'aprovar');
+ for(const decisao of ['excluir','reexibir']){
+   assert.equal((await api('admin/totem/galeria/decidir',{id,decisao,estado:'arquivada'},true)).status,200);
+   assert.deepEqual(calls.at(-1),{op:decisao,p:{id,estado:'arquivada'}});
+ }
 });

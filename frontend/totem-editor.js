@@ -29,7 +29,7 @@ async function carregar(){
    if(!itens.length)return '';
    return '<h3>'+titulo+'</h3>'+itens.map((a,i)=>'<article><div><strong>'+h(a.titulo)+'</strong><p>'+h(a.tipo==='Reel'?'Vídeo da unidade':a.tipo)+' · '+dataBR(a.inicio)+' – '+dataBR(a.fim)+'</p></div>'+ (grupo==='outros'?'':setasOrdem(grupo,i,itens.length))+'<button data-edit="'+h(a.id)+'">Editar</button><button data-del="'+h(a.id)+'">Excluir</button></article>').join('');
  }).join('');
- el('#itens').innerHTML=estado.itens.map(x=>'<article><div><strong>'+h(x.titulo)+'</strong><p>'+h(tipoNome[x.tipo])+' · '+(x.oculto?'Oculto':'Visível')+'</p></div><button data-vis="'+h(x.id)+'">'+(x.oculto?'Mostrar':'Ocultar')+'</button></article>').join('');
+ el('#itens').innerHTML=estado.itens.map(x=>'<article><div><strong>'+h(x.titulo)+'</strong><p>'+h(tipoNome[x.tipo])+(x.encerrada?' · Encerrada':'')+' · '+(x.oculto?'Oculto':'Visível')+'</p></div><button data-vis="'+h(x.id)+'">'+(x.oculto?'Mostrar':'Ocultar')+'</button></article>').join('');
 }
 async function salvar(op,d){await pedido('admin/totem/'+op,d);await carregar();mensagem('Alteração salva.');}
 hor.onsubmit=async e=>{e.preventDefault();const botao=hor.querySelector('button');if(botao.disabled)return;botao.disabled=true;

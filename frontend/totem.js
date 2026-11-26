@@ -7,8 +7,8 @@ function detalhe(x){
  let html='<h2>'+h(x.titulo)+'</h2>'+midia(x)+'<p class="texto">'+h(x.descricao)+'</p>';
  if(x.tipo==='oficina'){
   const vagas=Math.max(0,Number(x.vagas)-x.inscritos);
-  html+='<p>'+h(dataBR(x.data))+' · '+h(x.inicio)+'–'+h(x.termino)+' · '+h(x.local)+'<br>'+h(x.docente)+' · '+vagas+' vaga(s)</p>';
-  if(vagas)html+='<form id="inscricao" autocomplete="off"><label>Nome completo<input name="nome" maxlength="254" required></label><label>E-mail<input name="email" type="email" maxlength="254" required></label><button>Confirmar inscrição</button><p role="status"></p></form>';
+  html+='<p>'+h(dataBR(x.data))+' · '+h(x.inicio)+'–'+h(x.termino)+' · '+h(x.local)+'<br>'+h(x.docente)+' · '+(x.encerrada?'Oficina encerrada':vagas+' vaga(s)')+'</p>';
+  if(vagas&&!x.encerrada)html+='<form id="inscricao" autocomplete="off"><label>Nome completo<input name="nome" maxlength="254" required></label><label>E-mail<input name="email" type="email" maxlength="254" required></label><button>Confirmar inscrição</button><p role="status"></p></form>';
  }
  abrir(html);
  const form=el('#inscricao');if(form)form.onsubmit=async e=>{
@@ -136,7 +136,7 @@ function ofertas(){
  el('.oficina-copy small').textContent=foto?'Senac Salto':'Saberes em Movimento';
  el('#oficina').textContent=foto?'Fotos da comunidade':item.titulo||'';
  el('#inscrever').hidden=convite;
- el('#inscrever').textContent=foto?'Envie sua foto →':Number(item.vagas)>item.inscritos?'Inscreva-se →':'Ver oficina →';
+ el('#inscrever').textContent=foto?'Envie sua foto →':!item.encerrada&&Number(item.vagas)>item.inscritos?'Inscreva-se →':'Ver oficina →';
 }
 async function atualizar(){
  if(ocupado)return;ocupado=true;

@@ -164,7 +164,8 @@ export function createPortal(config, remote = fetch) {
         return reply(201,await rpc('enviar',{imagem:photo(b)},'fotos_comunidade_api'));
       }
       if(op==='admin/totem/galeria/decidir'){
-        insist(['aprovar','rejeitar','arquivar','reexibir','excluir'].includes(b.decisao)&&/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(b.id),'Decisão ou foto inválida.');
+        insist(['aprovar','rejeitar','arquivar','reexibir','excluir'].includes(b.decisao),'Operação de foto desconhecida. Atualize a página.');
+        insist(/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(b.id),'Identificador da foto inválido. Atualize a lista.');
         return reply(200,await rpc(b.decisao,{id:b.id,estado:b.estado},'fotos_comunidade_api'));
       }
       if(op.startsWith('admin/totem/')){
@@ -339,7 +340,7 @@ export function createPortal(config, remote = fetch) {
         case 'noticia': data={...fields(b,['titulo','descricao','categoria'],['autor','turma','curso']),imagem:photo(b)};break;
         case 'oficina': data=workshop(b,false,new Map(await mapRpc('salas',{})));break;
         case 'ideia': data=fields(b,['perfil','categoria','texto'],['nome']);break;
-        case 'inscrever':data=fields(b,['nome','email','workshop'],['cargo','area']);break;
+        case 'inscrever':return reply(201,await rpc('inscrever-portal',fields(b,['nome','email','workshop'],['cargo','area']),'totem_api'));
         case 'admin/editar-noticia':
           data=fields(b,['id','titulo','descricao','categoria'],['autor','turma','curso']);
           if(b.imagem!==undefined)data.imagem=photo(b);
