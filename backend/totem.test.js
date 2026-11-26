@@ -36,6 +36,13 @@ test('Totem público, edição pela Inovação e inscrição na oficina',async t
  const ambientes=Array.from({length:4},(_,i)=>({nome:'Local '+i,horario:'8h às 12h',telefone:'1234'}));
  assert.equal((await api('admin/totem/horarios',{ambientes},true)).status,200);
  assert.deepEqual(calls.at(-1).p.ambientes,ambientes);
+ for(const segundos of [5,15,600]){
+   assert.equal((await api('admin/totem/horarios',{ambientes,atualizacao_segundos:segundos},true)).status,200);
+   assert.equal(calls.at(-1).p.atualizacao_segundos,segundos);
+ }
+ for(const segundos of [4,601,1.5]){
+   assert.equal((await api('admin/totem/horarios',{ambientes,atualizacao_segundos:segundos},true)).status,400);
+ }
  assert.equal((await api('admin/totem')).status,403);
  assert.equal((await api('admin/totem/upload',{mime:'video/mp4',bytes:500})).status,403);
  assert.equal((await api('admin/totem/upload',{mime:'text/html',bytes:500},true)).status,400);
@@ -55,4 +62,8 @@ test('Totem público, edição pela Inovação e inscrição na oficina',async t
  assert.equal((await api('admin/totem/galeria/decidir',{id,decisao:'aprovar'})).status,403);
  assert.equal((await api('admin/totem/galeria/decidir',{id,decisao:'aprovar'},true)).status,200);
  assert.equal(calls.at(-1).op,'aprovar');
+ for(const decisao of ['excluir','reexibir']){
+   assert.equal((await api('admin/totem/galeria/decidir',{id,decisao,estado:'arquivada'},true)).status,200);
+   assert.deepEqual(calls.at(-1),{op:decisao,p:{id,estado:'arquivada'}});
+ }
 });

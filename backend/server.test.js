@@ -21,6 +21,7 @@ test('API pública, login, autorização, inscrições e logout',async t=>{
     }
     if(url.pathname==='/rest/v1/rpc/mapa_api')return Response.json(data.op==='salas'?[...salas]:false);
     if(url.pathname==='/rest/v1/rpc/chaves_excel_api'){calls.push(data);return Response.json({ok:true});}
+    if(url.pathname==='/rest/v1/rpc/totem_api'&&data.op==='inscrever-portal'){calls.push(data);return Response.json({conflict:'Oficina encerrada ou lotada'});}
     assert.equal(url.pathname,'/rest/v1/rpc/portal_api');
     assert.equal(opts.headers.apikey,'test-secret');
     calls.push(data);

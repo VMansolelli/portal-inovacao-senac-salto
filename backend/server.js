@@ -106,13 +106,14 @@ export function createPortal(config, remote = fetch) {
         if(op.startsWith('master/'))insist(staff.id===masterId,'Acesso exclusivo do administrador principal.',403);
       }
       const mapRequest=op.startsWith('mapa/');
-      const action=mapRequest?op.slice(5):op;
+      const mapAction=mapRequest?op.slice(5):'';
+      const action=mapAction==='permissoes/lista'?'master/lista':mapAction==='permissoes/aprovar'?'master/aprovar':mapRequest?mapAction:op;
       const accessRpc=mapRequest?mapRpc:rpc;
       if(mapRequest && !['entrar','solicitar','ativar','balcao','pegar','entregar'].includes(action)){
         staff=await verifiedUser(token);insist(await mapAllowed(staff),'Entre com uma conta autorizada para o Apoio.',403);
-        if(action.startsWith('master/'))insist(staff.id===masterId,'Exclusivo de Victor.',403);
+        if(action.startsWith('master/')&&!['master/lista','master/aprovar'].includes(action))insist(staff.id===masterId,'Exclusivo de Victor.',403);
       }
-      if(mapRequest && !['balcao','pegar','entregar','relatorio','excel-consultar','excel-publicar','perfil','entrar','ativar','solicitar','master/lista','master/aprovar','master/rejeitar'].includes(action))
+      if(mapRequest && !['balcao','pegar','entregar','relatorio','excel-consultar','excel-publicar','perfil','entrar','ativar','solicitar','master/lista','master/aprovar','master/rejeitar','master/revogar'].includes(action))
         return reply(410,{erro:'O Apoio agora utiliza o mapa publicado pelo Excel.'});
       if(req.method==='GET'){
         if(op==='admin/totem/galeria')return reply(200,await rpc('lista',{},'fotos_comunidade_api'));
@@ -151,13 +152,21 @@ export function createPortal(config, remote = fetch) {
       insist(req.method==='POST','Página não encontrada.',404);
       const b=await read(req);
       if(op==='totem/inscrever')return reply(201,await rpc('inscrever',fields(b,['nome','email','workshop'],['cargo','area']),'totem_api'));
+      if(op==='admin/arquivar-oficina')return reply(200,await rpc('arquivar-oficina',fields(b,['id']),'painel_gestao'));
+      if(op==='mapa/master/revogar')return reply(200,await rpc('revogar-mapa',{...fields(b,['id']),principal:masterId},'painel_gestao'));
+      if(op==='admin/totem/ordenar'){
+        const uuid=/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i;
+        insist(['esquerda','centro','fotos'].includes(b.grupo)&&[b.antes,b.ids].every(a=>Array.isArray(a)&&a.length>0&&a.every(id=>typeof id==='string'&&uuid.test(id))),'Ordem inválida.');
+        return reply(200,await rpc('ordenar',{grupo:b.grupo,antes:b.antes,ids:b.ids},'painel_gestao'));
+      }
       if(op==='galeria/enviar'){
         limitarMovimentos(req);insist(b.aceite===true,'Confirme a autorização para exibir a foto.');
         return reply(201,await rpc('enviar',{imagem:photo(b)},'fotos_comunidade_api'));
       }
       if(op==='admin/totem/galeria/decidir'){
-        insist(['aprovar','rejeitar','arquivar'].includes(b.decisao)&&/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(b.id),'Decisão ou foto inválida.');
-        return reply(200,await rpc(b.decisao,{id:b.id},'fotos_comunidade_api'));
+        insist(['aprovar','rejeitar','arquivar','reexibir','excluir'].includes(b.decisao),'Operação de foto desconhecida. Atualize a página.');
+        insist(/^[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}$/i.test(b.id),'Identificador da foto inválido. Atualize a lista.');
+        return reply(200,await rpc(b.decisao,{id:b.id,estado:b.estado},'fotos_comunidade_api'));
       }
       if(op.startsWith('admin/totem/')){
         const acao=op.slice('admin/totem/'.length);
@@ -206,6 +215,11 @@ export function createPortal(config, remote = fetch) {
         else if(acao==='excluir')d=fields(b,['id']);
         else if(acao==='horarios'){
           d={avaliacao:linkOpcional('avaliacao'),arte_reserva:linkOpcional('arte_reserva')};
+          if(b.atualizacao_segundos!==undefined){
+            const segundos=b.atualizacao_segundos;
+            insist(Number.isInteger(segundos)&&segundos>=5&&segundos<=600,'Escolha um intervalo de atualização entre 5 e 600 segundos.');
+            d.atualizacao_segundos=segundos;
+          }
           if(b.noticia_segundos!==undefined){
             const segundos=b.noticia_segundos;
             insist(Number.isInteger(segundos)&&segundos>=5&&segundos<=600,'Informe de 5 a 600 segundos por notícia.');
@@ -328,14 +342,20 @@ export function createPortal(config, remote = fetch) {
           res.setHeader('Set-Cookie',sessionCookie('',0));
           if(token)await auth('logout?scope=local',{method:'POST',headers:{Authorization:'Bearer '+token}});
           return reply(200,{ok:true});
-        case 'noticia': data={...fields(b,['titulo','descricao','categoria'],['autor','turma','curso']),imagem:photo(b)};break;
+        
         case 'oficina': data=workshop(b,false,new Map(await mapRpc('salas',{})));break;
         case 'ideia': data=fields(b,['perfil','categoria','texto'],['nome']);break;
-        case 'inscrever':data=fields(b,['nome','email','workshop'],['cargo','area']);break;
-        case 'admin/editar-noticia':
-          data=fields(b,['id','titulo','descricao','categoria'],['autor','turma','curso']);
-          if(b.imagem!==undefined)data.imagem=photo(b);
+        case 'inscrever':return reply(201,await rpc('inscrever-portal',fields(b,['nome','email','workshop'],['cargo','area']),'totem_api'));
+        case 'noticia':
+        case 'admin/editar-noticia': {
+          const obrigatorios=['titulo','descricao','categoria'];
+          if(op==='admin/editar-noticia')obrigatorios.push('id');
+          data=fields(b,obrigatorios,['autor','turma','curso']);
+          insist(data.titulo.length<=50,'Use até 50 caracteres no título da notícia.');
+          insist(data.descricao.length<=300,'Use até 300 caracteres na descrição da notícia.');
+          if(op==='noticia'||b.imagem!==undefined)data.imagem=photo(b);
           break;
+        }
         case 'admin/editar-acao':
           data=fields(b,['id','titulo','descricao']);if(b.imagem!==undefined)data.imagem=photo(b);break;
         case 'admin/excluir-oficina':case 'admin/apagar-ideia':case 'admin/arquivar-ideia':case 'admin/arquivar-noticia':

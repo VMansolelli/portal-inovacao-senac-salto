@@ -12,7 +12,9 @@ function photoURL(row){
   return version && row.foto ? row.foto+'?v='+version : row.foto;
 }
 const picture = row => row.foto?`<img src="${esc(photoURL(row))}" alt="" loading="lazy" style="width:100%;max-height:240px;object-fit:cover;border-radius:12px">`:'';
-const workshopDetails = w=>`${esc(w.docente)} · ${esc(w.area)}<br>${date(w.data)} · ${esc(w.inicio)}–${esc(w.termino)} · ${esc(w.local)}<br>${w.vagas-w.inscritos} de ${w.vagas} vagas disponíveis`;
+const relogioOficinas=new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'});
+const encerrou=w=>w.data+' '+w.termino.slice(0,5)<=relogioOficinas.format(new Date());
+const workshopDetails = w=>`${esc(w.docente)} · ${esc(w.area)}<br>${date(w.data)} · ${esc(w.inicio)}–${esc(w.termino)} · ${esc(w.local)}<br>${encerrou(w)?'Inscrições encerradas':(w.vagas-w.inscritos)+' de '+w.vagas+' vagas disponíveis'}`;
 async function api(path,body) {
   const response=await fetch('/api/'+path, body?{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}:{cache:'no-store'});
   const result=await response.json();
@@ -98,12 +100,14 @@ function editor(title,html,button){
   return {form,close};
 }
 function news(row){
-  const controls=field('titulo','Título da notícia')+'<div class="two-col">'+field('turma','Turma (opcional)','text',false)+field('curso','Curso (opcional)','text',false)+'</div>'+field('autor','Nome de quem publica (opcional)','text',false)+field('descricao','Descrição da notícia','textarea')+
+  const controls=field('titulo','Título da notícia (até 50 caracteres)')+'<div class="two-col">'+field('turma','Turma (opcional)','text',false)+field('curso','Curso (opcional)','text',false)+'</div>'+field('autor','Nome de quem publica (opcional)','text',false)+field('descricao','Descrição da notícia (até 300 caracteres)','textarea')+
     '<div><label for="categoriaNoticia">Categoria *</label><select required name="categoria" id="categoriaNoticia"><option value="">Selecione uma categoria</option>'+['Projeto de turma','Evento','Oficina','Inovação','Outro'].map(x=>'<option>'+x+'</option>').join('')+'</select></div>'+field('imagem',row?'Trocar foto (opcional)':'Foto da notícia','file',!row);
   const box=editor(row?'Editar notícia':'Publicar uma notícia',
     (row?'':'<p>Compartilhe uma notícia do Senac Salto, como uma conquista, uma exposição ou um convite à comunidade. O comitê avalia a notícia antes de publicá-la.</p>')+
     '<form class="form-grid">'+controls+'<button type="submit" class="btn btn-orange">'+(row?'Salvar alterações':'Enviar para aprovação')+'</button></form>',row?null:$('#openNoticiaModal'));
   if(!box)return;
+  box.form.elements.titulo.maxLength=50;
+  box.form.elements.descricao.maxLength=300;
   if(row){
     const category=box.form.elements.categoria;
     if(![...category.options].some(o=>o.value===row.categoria))category.add(new Option(row.categoria,row.categoria));
@@ -178,14 +182,14 @@ async function refreshPublic(){
   const cards=(kind,render,none)=>publicRows.filter(r=>r.kind===kind).map(render).join('')||empty(none);
   $('#muralGrid').innerHTML=cards('noticia',r=>`<article class="ncard">${picture(r)}<div class="ncard-body"><span class="tag">${esc(r.categoria)}</span><h4>${esc(r.titulo)}</h4><p>${esc(r.descricao)}</p><div class="meta">${[r.turma,r.curso,r.autor].filter(Boolean).map(esc).join(' · ')}</div></div></article>`,'Nenhuma notícia publicada. Envie a primeira notícia da unidade!');
   $('#acoesGrid').innerHTML=cards('acao',r=>`<article class="mcard acao-card">${picture(r)}<h4>${esc(r.titulo)}</h4><p>${esc(r.descricao)}</p></article>`,'Nenhuma ação local publicada.');
-  $('#saberesLista').innerHTML=cards('oficina',w=>`<article class="oficina-card"><div class="oficina-info">${picture(w)}<h4>${esc(w.titulo)}</h4><div class="oficina-meta"><span>${workshopDetails(w)}</span></div></div>${w.inscritos<w.vagas?btn('Inscrever-se','inscrever',w.id):'<span class="vagas-badge">Vagas esgotadas</span>'}</article>`,'Nenhuma oficina aprovada no momento.');
+  $('#saberesLista').innerHTML=cards('oficina',w=>`<article class="oficina-card"><div class="oficina-info">${picture(w)}<h4>${esc(w.titulo)}</h4><div class="oficina-meta"><span>${workshopDetails(w)}</span></div></div>${encerrou(w)?'<span class="vagas-badge">Oficina encerrada</span>':w.inscritos<w.vagas?btn('Inscrever-se','inscrever',w.id):'<span class="vagas-badge">Vagas esgotadas</span>'}</article>`,'Nenhuma oficina aprovada no momento.');
 }
 let master=false, requests=[];
 const tabs=areaTotem?{noticia:'Notícias',config:'Configurações',divulgacoes:'Divulgações',galeria:'Fotos da comunidade',conteudo:'Conteúdo do portal'}:{acao:'Ações locais',oficina:'Oficinas',email:'E-mails',inscritos:'Inscritos e PDF',ideia:'Ideias'};
 function adminCard(r){
   let content='',actions='';
   if(r.kind==='oficina'){
-    content=workshopDetails(r);actions=btn('Editar','editar',r.id)+btn('Excluir oficina','excluir-oficina',r.id);
+    content=workshopDetails(r);actions=btn('Editar','editar',r.id)+(r.status==='aprovada'?btn('Arquivar oficina','arquivar-oficina',r.id):'')+btn('Excluir oficina','excluir-oficina',r.id);
   }else if(r.kind==='ideia'){
     content=`${esc(r.nome||'Anônimo')} · ${esc(r.perfil)} · ${esc(r.categoria)}<p>${esc(r.texto)}</p>`;
   }else{
@@ -404,7 +408,7 @@ async function action(button){
     dialog.addEventListener('close',()=>{if(objectURL)URL.revokeObjectURL(objectURL);},{once:true});
     return;
   }
-  const confirmations={'excluir-oficina':'Excluir a oficina e todas as inscrições vinculadas?', 'apagar-ideia':'Apagar definitivamente esta ideia?', 'arquivar-ideia':'Mover a ideia para Arquivadas?', 'arquivar-noticia':'Retirar a notícia do mural e arquivar?'};
+  const confirmations={'arquivar-oficina':'Arquivar a oficina e retirá-la do portal e do totem?','excluir-oficina':'Excluir a oficina e todas as inscrições vinculadas?', 'apagar-ideia':'Apagar definitivamente esta ideia?', 'arquivar-ideia':'Mover a ideia para Arquivadas?', 'arquivar-noticia':'Retirar a notícia do mural e arquivar?'};
   if(Object.hasOwn(confirmations,op)){
     if(confirm(confirmations[op])){await api('admin/'+op,{id});await refreshBoth();}return;
   }
