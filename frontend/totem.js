@@ -183,4 +183,9 @@ function limparDepois(){clearTimeout(espera);if(el('#detalhe').open)espera=setTi
 el('.fechar').onclick=()=>el('#detalhe').close();
 el('#detalhe').onclose=()=>{clearTimeout(espera);el('#detalheBody').replaceChildren();};
 for(const ev of ['click','input','keydown'])document.addEventListener(ev,limparDepois);
-relogio();grade();atualizar();setInterval(atualizar,30000);setInterval(()=>{relogio();pagina++;grade();},15000);programarOficinas();
+async function consultarTotem(){
+ await atualizar();
+ const segundos=dados?.horarios?.atualizacao_segundos??15;
+ setTimeout(consultarTotem,segundos*1000);
+}
+relogio();grade();consultarTotem();setInterval(()=>{relogio();pagina++;grade();},15000);programarOficinas();

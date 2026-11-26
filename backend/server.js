@@ -215,6 +215,11 @@ export function createPortal(config, remote = fetch) {
         else if(acao==='excluir')d=fields(b,['id']);
         else if(acao==='horarios'){
           d={avaliacao:linkOpcional('avaliacao'),arte_reserva:linkOpcional('arte_reserva')};
+          if(b.atualizacao_segundos!==undefined){
+            const segundos=b.atualizacao_segundos;
+            insist(Number.isInteger(segundos)&&segundos>=5&&segundos<=600,'Escolha um intervalo de atualização entre 5 e 600 segundos.');
+            d.atualizacao_segundos=segundos;
+          }
           if(b.noticia_segundos!==undefined){
             const segundos=b.noticia_segundos;
             insist(Number.isInteger(segundos)&&segundos>=5&&segundos<=600,'Informe de 5 a 600 segundos por notícia.');

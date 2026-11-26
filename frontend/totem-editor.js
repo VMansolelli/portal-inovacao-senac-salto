@@ -15,6 +15,7 @@ ed.elements.tipo.onchange=tipo;
 ed.onreset=()=>setTimeout(()=>{if(!ed.elements.titulo.value){ed.elements.id.value='';legenda='';el('#vttAtual').textContent='';arquivo='';ed.elements.inicio.value=diaAtual();ed.elements.fim.value=diaAtual();el('#existente').textContent='';tipo();}},0);
 async function carregar(){
  estado=await pedido('admin/totem');el('#painel').hidden=false;
+ hor.elements.atualizacao_segundos.value=estado.horarios.atualizacao_segundos??15;
  hor.elements.noticia_segundos.value=estado.horarios.noticia_segundos??30;
  const arte=estado.horarios.arte_reserva;
  el('#prev-arte').hidden=!arte;if(arte)el('#prev-arte').src=arte;
@@ -47,7 +48,7 @@ hor.onsubmit=async e=>{e.preventDefault();const botao=hor.querySelector('button'
    const resp=await fetch(upload.url,{method:'PUT',headers:{'Content-Type':file.type},body:file});
    if(!resp.ok)throw Error('Não foi possível enviar a arte.');arte=upload.publica;
  }else if(hor.elements.remover_arte.checked)arte='';
- await salvar('horarios',{ambientes,arte_reserva:arte,avaliacao:hor.elements.avaliacao.value,noticia_segundos:hor.elements.noticia_segundos.valueAsNumber});hor.elements.arte.value='';hor.elements.remover_arte.checked=false;}catch(err){mensagem(err.message);}finally{botao.disabled=false;}};
+ await salvar('horarios',{ambientes,atualizacao_segundos:hor.elements.atualizacao_segundos.valueAsNumber,arte_reserva:arte,avaliacao:hor.elements.avaliacao.value,noticia_segundos:hor.elements.noticia_segundos.valueAsNumber});hor.elements.arte.value='';hor.elements.remover_arte.checked=false;}catch(err){mensagem(err.message);}finally{botao.disabled=false;}};
 ed.onsubmit=async e=>{
  e.preventDefault();if(enviando)return;enviando=true;const d=Object.fromEntries(new FormData(ed));const file=d.cartaz||d.video;delete d.video;delete d.cartaz;const vtt=d.vtt;delete d.vtt;
  for(const c of ed.elements)c.disabled=true;
