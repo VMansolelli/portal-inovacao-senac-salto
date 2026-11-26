@@ -31,3 +31,8 @@ button,summary{min-height:46px}button.primary,button.accent,button[aria-current=
 .acesso-marca{display:flex;flex-direction:column;align-items:flex-start;position:relative;overflow:hidden;background:#103b55;color:white;padding:40px}.acesso-marca h1{font-size:clamp(42px,5vw,64px);margin-top:22px}.acesso-marca h1 span{color:#ffa343}.acesso-marca svg{align-self:flex-end;width:65%;height:auto;margin:auto -1rem -3rem 0;transform:rotate(-14deg)}
 .acesso-form{padding:clamp(24px,4vw,56px)}.acesso-form h2{font-size:clamp(25px,3vw,34px)}.acesso-form .form{margin:24px 0 8px}.acesso-form>button{display:block;border:0;text-decoration:underline;padding:7px 0}.senha-mapa{position:relative}.senha-mapa input{padding-right:84px}.senha-mapa button{position:absolute;right:4px;top:50%;transform:translateY(-50%);border:0;background:transparent;font-size:.82rem}
 @media(max-width:680px){.acesso-quadro{grid-template-columns:1fr;margin:0 auto}.acesso-marca{padding:18px 24px}.acesso-marca h1{font-size:32px;margin:5px 0}.acesso-marca br{display:none}.acesso-marca svg{position:absolute;width:80px;right:28px;bottom:3rem}}
+
+.desk #page .row{display:grid;grid-template-columns:minmax(0,1fr) 6rem;align-items:center}
+.desk #page .row>div:first-child{overflow-wrap:anywhere}
+.desk #page .row .buttons{width:100%;justify-content:center;text-align:center}
+.desk #page .row .buttons button{width:100%}

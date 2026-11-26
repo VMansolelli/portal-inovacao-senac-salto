@@ -10,7 +10,7 @@ const btn=(label,action,id='',css='')=>`<button type="button" class="${css}" ${a
 const input=(label,name,type='text',value='',attrs='required')=>`<label>${label}<input type="${type}" name="${name}" value="${esc(value)}" ${attrs}></label>`;
 const select=(label,name,items,selected='',required=true)=>`<label>${label}<select name="${name}" ${required?'required':''}><option value="">Selecione</option>${items.map(([v,l])=>`<option value="${esc(v)}" ${v===selected?'selected':''}>${esc(l)}</option>`).join('')}</select></label>`;
 const submit=t=>`<button class="accent" type="submit">${esc(t)}</button>`;
-const docenteMapa=aula=>'Docente: '+(aula.docente?.trim()||'não informado no mapa');
+const detalheAula=aula=>[aula.turma, aula.horario?.trim().replace(/\bas\b/gi,'às'), aula.docente?.trim()||'—'].filter(Boolean).join(' · ');
 const labelType={sala:'Salas',curso:'Cursos',turma:'Turmas',docente:'Docentes'};
 const tabs={excel:'Mapa do Excel',relatorio:'Relatório de chaves',qr:'QR das chaves',acessos:'Permissões'};
 let staff=null,activeTab='excel',date=nowDay(),generation=0,balcao;
@@ -65,10 +65,9 @@ async function render(){
  if(mode){
    const data=await api('balcao',{});if(run!==generation)return;
    balcao=data;
-   const detalhe=a=>[a.turma,['Manhã','Tarde','Noite'][a.turno],a.horario,docenteMapa(a)].filter(Boolean).join(' · ');
-   const abertas=data.abertas.map(m=>row(m.aula.sala,br(m.dia)+' · '+detalhe(m.aula),btn('Devolver','entregar',m.id))).join('');
+   const abertas=data.abertas.map(m=>row(m.dia===data.dia?m.aula.sala:m.aula.sala+' · '+br(m.dia),detalheAula(m.aula),btn('Devolver','entregar',m.id))).join('');
    const botoesTurno=['Manhã','Tarde','Noite'].map((t,i)=>'<button type="button" data-action="turno" data-id="'+i+'" aria-pressed="'+(i===turnoBalcao)+'" class="'+(i===turnoBalcao?'primary':'')+'">'+t+'</button>').join('');
-   const aulas=data.aulas.filter(a=>a.turno===turnoBalcao).map(a=>row(a.sala,detalhe(a),a.ocupada?'Chave em uso':btn('Retirar','pegar',a.indice,'primary'))).join('');
+   const aulas=data.aulas.filter(a=>a.turno===turnoBalcao).map(a=>row(a.sala,detalheAula(a),a.ocupada?'Chave em uso':btn('Retirar','pegar',a.indice,'primary'))).join('');
    $('#page').innerHTML=tools('Chaves · '+br(data.dia),btn('Atualizar lista','retry'))+
      (abertas?'<h2>Devolver uma chave</h2>'+abertas:'')+'<h2>Retirar para uma aula</h2><nav class="buttons" aria-label="Turno da retirada">'+botoesTurno+'</nav>'+ (aulas||'<p>Nenhuma aula publicada neste turno.</p>');
  }else if(activeTab==='excel'){abrirImportacao($('#page'),api);
@@ -110,7 +109,7 @@ async function act(action,id){
    const aula=pegar?balcao.aulas.find(a=>a.indice===Number(id)):balcao.abertas.find(m=>m.id===id)?.aula;
    if(!aula)return render();
    const origem=pegar?{revisao:balcao.revisao,indice:Number(id),pedido:crypto.randomUUID()}:{id};
-   return modal(pegar?'Retirar chave':'Devolver chave','<h3>'+esc(aula.sala)+'</h3><p>'+esc(aula.turma)+'</p><p>'+esc(docenteMapa(aula))+'</p>'+input('Seu Nome','nome','text','','required maxlength="254" autocomplete="off"'),async d=>{
+   return modal(pegar?'Retirar chave':'Devolver chave','<h3>'+esc(aula.sala)+'</h3><p>'+esc(detalheAula(aula))+'</p>'+input('Seu Nome','nome','text','','required maxlength="254" autocomplete="off"'),async d=>{
      await api(action,{...origem,nome:d.nome.trim()});await done((pegar?'Retirada':'Devolução')+' registrada · '+aula.sala);
    },pegar?'Confirmar retirada':'Confirmar devolução');
  }
