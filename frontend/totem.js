@@ -51,7 +51,7 @@ function faixa(){
  const x=itens[indice];const chave=JSON.stringify([x,itens.length,indice,segundos]);if(chave===assinatura)return;
  assinatura=chave;clearTimeout(temporizador);
  el('#noticia-setas').hidden=itens.length<2;
- el('#noticia-corpo').innerHTML=(x?midia(x):'')+'<div class="copy"><small>'+(x?.video?'Vídeo da unidade':'Notícias da unidade')+'</small><span class="regua"></span><strong>'+h(x?.titulo||'Sem notícias em exibição')+'</strong>'+(x?.descricao?'<p>'+h(x.descricao)+'</p>':'')+(itens.length>1?'<small>'+(indice+1)+' / '+itens.length+'</small>':'')+'</div>';
+ el('#noticia-corpo').innerHTML=(x?midia(x):'')+'<div class="copy"><small>'+(x?.video?'Vídeo da unidade':'Notícias da unidade')+'</small><span class="regua"></span><strong>'+h(x?.titulo||'Sem notícias em exibição')+'</strong>'+(x?.descricao?'<p>'+h(x.descricao)+'</p>':'')+'</div>';
  if(itens.length>1)temporizador=setTimeout(()=>{indice++;faixa();},segundos*1000);
 }
 let listaVideos=[], chaveVideo=null, idVideo=null, tentativa;

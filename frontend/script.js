@@ -100,12 +100,14 @@ function editor(title,html,button){
   return {form,close};
 }
 function news(row){
-  const controls=field('titulo','Título da notícia')+'<div class="two-col">'+field('turma','Turma (opcional)','text',false)+field('curso','Curso (opcional)','text',false)+'</div>'+field('autor','Nome de quem publica (opcional)','text',false)+field('descricao','Descrição da notícia','textarea')+
+  const controls=field('titulo','Título da notícia (até 50 caracteres)')+'<div class="two-col">'+field('turma','Turma (opcional)','text',false)+field('curso','Curso (opcional)','text',false)+'</div>'+field('autor','Nome de quem publica (opcional)','text',false)+field('descricao','Descrição da notícia (até 300 caracteres)','textarea')+
     '<div><label for="categoriaNoticia">Categoria *</label><select required name="categoria" id="categoriaNoticia"><option value="">Selecione uma categoria</option>'+['Projeto de turma','Evento','Oficina','Inovação','Outro'].map(x=>'<option>'+x+'</option>').join('')+'</select></div>'+field('imagem',row?'Trocar foto (opcional)':'Foto da notícia','file',!row);
   const box=editor(row?'Editar notícia':'Publicar uma notícia',
     (row?'':'<p>Compartilhe uma notícia do Senac Salto, como uma conquista, uma exposição ou um convite à comunidade. O comitê avalia a notícia antes de publicá-la.</p>')+
     '<form class="form-grid">'+controls+'<button type="submit" class="btn btn-orange">'+(row?'Salvar alterações':'Enviar para aprovação')+'</button></form>',row?null:$('#openNoticiaModal'));
   if(!box)return;
+  box.form.elements.titulo.maxLength=50;
+  box.form.elements.descricao.maxLength=300;
   if(row){
     const category=box.form.elements.categoria;
     if(![...category.options].some(o=>o.value===row.categoria))category.add(new Option(row.categoria,row.categoria));

@@ -68,3 +68,7 @@ main{grid-template-rows:6.5% auto minmax(0,1fr) minmax(10%,.36fr) auto}
 #convite-foto[hidden],.quadrados .oficina-copy[hidden]{display:none}
 #qr-envio svg{display:block;width:min(60vw,260px);margin:auto}
 .form-foto{border:0;width:100%;height:65vh}
+
+#noticia-corpo .copy{flex:1;align-self:stretch;align-content:start;grid-template-rows:auto auto auto minmax(0,1fr);gap:.12rem;padding:.24rem .55rem;overflow:hidden}
+#noticia-corpo .copy strong{display:block;white-space:nowrap;text-overflow:ellipsis;line-height:1.15}
+#noticia-corpo .copy p{display:block;min-height:0;line-height:1.2;margin:0;overflow:hidden;overflow-wrap:anywhere}

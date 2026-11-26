@@ -342,14 +342,20 @@ export function createPortal(config, remote = fetch) {
           res.setHeader('Set-Cookie',sessionCookie('',0));
           if(token)await auth('logout?scope=local',{method:'POST',headers:{Authorization:'Bearer '+token}});
           return reply(200,{ok:true});
-        case 'noticia': data={...fields(b,['titulo','descricao','categoria'],['autor','turma','curso']),imagem:photo(b)};break;
+        
         case 'oficina': data=workshop(b,false,new Map(await mapRpc('salas',{})));break;
         case 'ideia': data=fields(b,['perfil','categoria','texto'],['nome']);break;
         case 'inscrever':return reply(201,await rpc('inscrever-portal',fields(b,['nome','email','workshop'],['cargo','area']),'totem_api'));
-        case 'admin/editar-noticia':
-          data=fields(b,['id','titulo','descricao','categoria'],['autor','turma','curso']);
-          if(b.imagem!==undefined)data.imagem=photo(b);
+        case 'noticia':
+        case 'admin/editar-noticia': {
+          const obrigatorios=['titulo','descricao','categoria'];
+          if(op==='admin/editar-noticia')obrigatorios.push('id');
+          data=fields(b,obrigatorios,['autor','turma','curso']);
+          insist(data.titulo.length<=50,'Use até 50 caracteres no título da notícia.');
+          insist(data.descricao.length<=300,'Use até 300 caracteres na descrição da notícia.');
+          if(op==='noticia'||b.imagem!==undefined)data.imagem=photo(b);
           break;
+        }
         case 'admin/editar-acao':
           data=fields(b,['id','titulo','descricao']);if(b.imagem!==undefined)data.imagem=photo(b);break;
         case 'admin/excluir-oficina':case 'admin/apagar-ideia':case 'admin/arquivar-ideia':case 'admin/arquivar-noticia':
