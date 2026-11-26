@@ -78,10 +78,21 @@ async function render(){
  }else if(activeTab==='qr'){
    $('#page').innerHTML=tools('QR permanente das chaves','')+'<p>Leia o código para retirar ou devolver uma chave.</p><img class="qr" alt="QR de retirada e devolução de chaves" src="balcao-permanente.png" style="width:min(260px,85%);display:block"><div class="buttons"><a download href="balcao-permanente.png">Baixar PNG</a> <a download href="balcao-permanente.pdf">Baixar PDF</a></div>';
  }else{
-  const list=await api('master/lista');if(run!==generation)return;
-  $('#page').innerHTML=tools('Permissões do Apoio','')+(list.map(x=>row(x.nome,x.email+' · '+x.estado,x.estado==='ativa'?(staff.master?btn('Excluir acesso','master/revogar',x.id,'danger'):''):btn('Aprovar / emitir convite','master/aprovar',x.id)+(staff.master?btn('Rejeitar','master/rejeitar',x.id):''))).join('')||'<p>Nenhuma solicitação. </p>');
+  const list=await api('permissoes/lista');if(run!==generation)return;
+  $('#page').innerHTML=tools('Permissões do Apoio','')+(list.map(x=>row(x.nome,x.email+' · '+x.estado,x.estado==='ativa'?(staff.master?btn('Excluir acesso','master/revogar',x.id,'danger'):''):btn('Aprovar / emitir convite','permissoes/aprovar',x.id)+(staff.master?btn('Rejeitar','master/rejeitar',x.id):''))).join('')||'<p>Nenhuma solicitação. </p>');
  }
- }catch(err){if(run===generation){if(err.status===403&&!mode){staff=null;say(err.message);return render();}$('#page').innerHTML=btn('Tentar novamente','retry');say(err.message);}}
+ }catch(err){
+   if(run!==generation)return;
+   if(err.status===403&&!mode){
+     try{await api('perfil');}
+     catch(perfilErro){
+       if(run!==generation)return;
+       if(perfilErro.status===403){staff=null;say('Entre novamente para acessar o Mapa de salas.');return render();}
+     }
+   }
+   if(run!==generation)return;
+   $('#page').innerHTML=btn('Tentar novamente','retry');say(err.message);
+ }
 }
 const tools=(title,buttons)=>`<div class="tools no-print"><h2>${esc(title)}</h2>${buttons}</div>`;
 const row=(title,sub,actions)=>`<article class="row"><div><strong>${esc(title)}</strong><p class="muted">${esc(sub)}</p></div><div class="buttons">${actions}</div></article>`;
@@ -105,7 +116,7 @@ async function act(action,id){
  if(action==='solicitar')return modal('Solicitar acesso ao Apoio',input('Nome','nome')+input('E-mail institucional','email','email'),async d=>{await api(action,d);await done('Solicitação registrada para avaliação do Apoio.');},'Solicitar acesso');
  if(action==='ativar')return modal('Ativar convite do Apoio',input('E-mail','email','email')+input('Convite','codigo')+
    input('Senha (use a atual se já tiver conta)','senha','password','','required minlength="8"'),async d=>{await api(action,d);await done('Acesso ativado. Entre com e-mail e senha.');},'Ativar');
- if(action.startsWith('master/')){
+ if(action==='permissoes/aprovar'||action.startsWith('master/')){
    if(!confirm('Confirmar a decisão sobre este acesso ao Mapa de Salas?'))return;
    const r=await api(action,{id});await render();
    if(r.codigo)codeBox('Convite do Apoio',r.codigo,'Válido por 24 horas. Entregue ao solicitante após conferir sua identidade.');

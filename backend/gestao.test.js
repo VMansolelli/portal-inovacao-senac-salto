@@ -14,6 +14,10 @@ test('Apoio pode conceder acesso e apenas a conta principal pode revogar',async 
  });
  await new Promise(ok=>app.listen(0,'127.0.0.1',ok));t.after(()=>new Promise(ok=>app.close(ok)));
  const api=(conta,op,post=true)=>fetch('http://127.0.0.1:'+app.address().port+'/api/'+op,{method:post?'POST':'GET',headers:{cookie:'__Host-portal='+conta,'Content-Type':'application/json'},body:post?JSON.stringify({id:'teste'}):undefined});
+ assert.equal((await api('apoio','mapa/permissoes/lista',false)).status,200);
+ assert.equal((await api('apoio','mapa/permissoes/aprovar')).status,200);
+ assert.equal((await api('visitante','mapa/permissoes/lista',false)).status,403);
+ assert.equal((await api('visitante','mapa/permissoes/aprovar')).status,403);
  assert.equal((await api('apoio','mapa/master/lista',false)).status,200);
  assert.equal((await api('apoio','mapa/master/aprovar')).status,200);
  assert.equal((await api('visitante','mapa/master/aprovar')).status,403);

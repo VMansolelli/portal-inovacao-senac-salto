@@ -106,7 +106,8 @@ export function createPortal(config, remote = fetch) {
         if(op.startsWith('master/'))insist(staff.id===masterId,'Acesso exclusivo do administrador principal.',403);
       }
       const mapRequest=op.startsWith('mapa/');
-      const action=mapRequest?op.slice(5):op;
+      const mapAction=mapRequest?op.slice(5):'';
+      const action=mapAction==='permissoes/lista'?'master/lista':mapAction==='permissoes/aprovar'?'master/aprovar':mapRequest?mapAction:op;
       const accessRpc=mapRequest?mapRpc:rpc;
       if(mapRequest && !['entrar','solicitar','ativar','balcao','pegar','entregar'].includes(action)){
         staff=await verifiedUser(token);insist(await mapAllowed(staff),'Entre com uma conta autorizada para o Apoio.',403);
